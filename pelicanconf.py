@@ -6,6 +6,7 @@ SITENAME = "Jethro's Tech Blog"
 SITEURL = ''
 
 PATH = 'content'
+OUTPUT_PATH = 'docs'
 
 TIMEZONE = 'America/Toronto'
 
@@ -19,14 +20,12 @@ AUTHOR_FEED_ATOM = None
 AUTHOR_FEED_RSS = None
 
 # Blogroll
-LINKS = (('Pelican', 'https://getpelican.com/'),
-         ('Python.org', 'https://www.python.org/'),
-         ('Jinja2', 'https://palletsprojects.com/p/jinja/'),
-         ('You can modify those links in your config file', '#'),)
+LINKS = (('Pelican', 'https://getpelican.com/'),)
 
 # Social widget
-SOCIAL = (('You can add links in your config file', '#'),
-          ('Another social link', '#'),)
+SOCIAL = (('GitHub', 'https://github.com/jyscao'),
+          ('Reddit', 'https://www.reddit.com/user/jyscao'),
+          ('Medium', 'https://medium.com/@jyscao'),)
 
 DEFAULT_PAGINATION = False
 
