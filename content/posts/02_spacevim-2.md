@@ -4,7 +4,7 @@ Modified: 2020-10-11
 Category: Programming
 Tags: text-editor, spacevim, neovim, vim
 Slug: spacevim-layers
-Summary: a look into SpaceVim's internal workings, in particular its layers architecture
+Summary: A look into SpaceVim's internal workings, in particular its layers architecture.
 
 
 

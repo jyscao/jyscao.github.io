@@ -4,7 +4,7 @@ Modified: 2020-10-11
 Category: Tools
 Tags: text-editor, spacevim, neovim, vim
 Slug: spacevim-intro
-Summary: an introductory overview of SpaceVim and its basic features and functionalities
+Summary: An opinionated overview of SpaceVim and its basic features & functionalities.
 
 
 
