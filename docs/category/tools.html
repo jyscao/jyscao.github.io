@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+        <meta charset="utf-8" />
+        <meta name="generator" content="Pelican" />
+        <title>Jethro's Tech Blog - Tools</title>
+        <link rel="stylesheet" href="/theme/css/main.css" />
+</head>
+
+<body id="index" class="home">
+        <header id="banner" class="body">
+                <h1><a href="/">Jethro's Tech Blog</a></h1>
+                <nav><ul>
+                    <li><a href="/pages/about-me.html">About Me</a></li>
+                    <li><a href="/category/programming.html">Programming</a></li>
+                    <li class="active"><a href="/category/tools.html">Tools</a></li>
+                </ul></nav>
+        </header><!-- /#banner -->
+
+            <aside id="featured" class="body">
+                <article>
+                    <h1 class="entry-title"><a href="/spacevim-intro.html">SpaceVim: A Vimmer's Eval</a></h1>
+<footer class="post-info">
+        <abbr class="published" title="2019-10-14T00:00:00-04:00">
+                Published: Mon 14 October 2019
+        </abbr>
+		<br />
+        <abbr class="modified" title="2020-10-11T00:00:00-04:00">
+                Updated: Sun 11 October 2020
+        </abbr>
+
+        <address class="vcard author">
+                By                         <a class="url fn" href="/author/jethro-cao.html">Jethro Cao</a>
+        </address>
+<p>In <a href="/category/tools.html">Tools</a>.</p>
+<p>tags: <a href="/tag/text-editor.html">text-editor</a> <a href="/tag/spacevim.html">spacevim</a> <a href="/tag/neovim.html">neovim</a> <a href="/tag/vim.html">vim</a> </p>
+</footer><!-- /.post-info --><p><a href="https://spacevim.org">SpaceVim</a> describes itself as "A community-driven
+modular vim distribution - The ultimate vim configuration". It's an
+excellent project targeting new or busy Vim users who don't have
+the time to set up their own configs. It comes with a rich feature
+set, which provides all the essential tools needed to streamline the
+workflows of programmers, allowing them to just focus on writing code. I
+will introduce SpaceVim by offering some practical customization advice
+and demonstrating a few essential features. However it's not absent of
+rough edges, which I shall also be informing potential users of.</p>
+<figure>
+<img src="images/01-1_startup.png" style="width:100%;">
+<figcaption style="text-align: center;">SpaceVim's startup splash screen</figcaption>
+</figure>
+
+<h2>Author's Background</h2>
+<p>I first started using Vim back in 2015, and was soon sucked down the
+rabbit hole of customizing my <code>.vimrc</code>. After stumbling across the
+Vim plugins ecosystem, it quickly became painfully clear to me that
+all attempts to achieve a "perfect" Vim configuration are fantasies.
+This is the dilemma SpaceVim aims to resolve. The distribution can be
+easily installed on both Linux/macOS and Windows, and fully supports
+both Neovim and Vim. My own environment is Neovim on Linux, but the
+experience should be comparable for all setups. I'll begin by explaining
+how to do basic customizations in SpaceVim, then showcase a couple
+useful cool tools, so that newcomers can hit the editor coding!</p>
+<h2>What's Available</h2>
+<p>SpaceVim provides sensible enough defaults that makes it ready for use
+straight out-of-the-box. It diverges from the <code>~/.vimrc</code> tradition,
+instead opting for a <code>~/.Spacevim.d/init.toml</code> config file, which is
+well-suited for doing high-level customizations on top of SpaceVim's
+modular design.</p>
+<figure>
+<img src="images/01-2_toml-config.png" style="width:100%;">
+<figcaption style="text-align: center;">An example of a user TOML config file</figcaption>
+</figure>
+
+<p>This TOML config can be quickly opened in a new buffer via the
+<code>SPC f v d</code> keybinding, where you can set SpaceVim global options and
+activate its layers, which are the building blocks of SpaceVim. More
+concretely, each SpaceVim layer packages related plugins and configures
+them to work together. It also adds a consistent set of keybindings on
+top, thereby combining everything into a whole that's greater than the
+sum of its parts.</p>
+<p>As an example, the git layer makes available both <a href="https://github.com/tpope/vim-fugitive">tpope's
+vim-fugitive</a> and <a href="https://github.com/lambdalisue/gina.vim">lambdalisue's
+gina.vim</a> git wrappers. It also
+bundles in <a href="https://github.com/junegunn/gv.vim">junegunn's gv.vim</a> and
+<a href="https://github.com/airblade/vim-gitgutter">airblade's vim-gitgutter</a>. The
+main commands provided by all these plugins are hooked up to mnemonic keybinds
+under the <code>SPC g</code> submenu.</p>
+<figure>
+<img src="images/01-3_git-guide.png" style="width:100%;">
+<figcaption style="text-align: center;">SpaceVim's submenu guide for its git layer</figcaption>
+</figure>
+
+<p>For example, <code>SPC g s</code> opens up a git-status buffer in a new window
+split, where you can conveniently stage files and write commit messages.</p>
+<figure>
+<img src="images/01-a_gstatus.gif" style="width:100%;">
+<figcaption style="text-align: center;">git status with vim-fugitive</figcaption>
+</figure>
+
+<p>And <code>SPC g d</code> opens a git-diff buffer, where you can review the changes
+side-by-side before committing them.</p>
+<figure>
+<img src="images/01-b_gdiff.gif" style="width:100%;">
+<figcaption style="text-align: center;">git diff with vim-fugitive</figcaption>
+</figure>
+
+<p>It's also worth noting that SpaceVim's wide array of features and
+functionalities are discoverable through its <code>SPC</code>-leader guide UI, as
+you saw from the <code>SPC g</code> example above. In addition to these utilities
+layers like git, autocompletion, debugging, grepping, fuzzy finding,
+tags, shell, LSP, etc., there also exists 80+ layers for specific
+programming languages providing support for things such as syntax
+checking, code formatting, code running and more. The complete list
+of available layers can be pulled up with <code>SPC h l</code>, or by executing
+<code>:SPLayer -l</code>.</p>
+<figure>
+<img src="images/01-4_available-layers.png" style="width:100%;">
+<figcaption style="text-align: center;">Some of SpaceVim's available layers</figcaption>
+</figure>
+
+<p>At the time of this writing, there are 124 available layers, with new
+ones being added all the time. Also note that all plugins pulled in
+by enabled layers are loaded lazily, and can be easily updated with
+<code>:SPUpdate</code>. This command also updates SpaceVim itself.</p>
+<h2>Configuration Basics</h2>
+<h4>Options</h4>
+<p>Inside your <code>~/.SpaceVim.d/init.toml</code>, there is an <code>[options]</code> section,
+under which all general SpaceVim options should be set. Any key defined
+here gets converted to a global vim variable by SpaceVim. So adding the
+line <code>foo = "hello"</code> creates <code>g:spacevim_foo</code> with value <code>"hello"</code>.
+SpaceVim scripts look for these <code>g:spacevim_</code> prefixed global variables
+to configure its various settings.</p>
+<p>For example, if you wish to use <a href="https://github.com/Shougo/defx.nvim">Shougo's
+defx.nvim</a> as your filemanager,
+you can set the option <code>filemanager = "defx"</code> in your TOML. To display
+absolute line numbers instead of the default relative ones, set
+<code>relativenumber = false</code>. To opt-out of having SpaceVim manage your
+CWD, you can set <code>project_rooter_automatically = false</code>. A good portion
+of these general SpaceVim options are listed in the <a href=":help spacevim or open ~/.SpaceVim/doc/SpaceVim.txt">SpaceVim help
+manual</a>, which
+unfortunately don't appear to be fully updated. So to get a list of
+all global variables used by SpaceVim, you can always do <code>:let g:</code> and
+filter on <code>"g:spacevim_"</code>.</p>
+<h4>Layers</h4>
+<p>Layers can come with their own layer-local options. Going back to the
+earlier example of the git layer, the git wrapper I use is vim-fugitive,
+but if you prefer lambdalisue's gina.vim, then just add the last line
+under your enabled git layer.</p>
+<div class="highlight"><pre><span></span><span class="k">[[layers]]</span>
+  <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;git&quot;</span>
+  <span class="n">git-plugin</span> <span class="o">=</span> <span class="s">&quot;gina&quot;</span>
+</pre></div>
+
+
+<p>It's always worth first checking both SpaceVim's built-in
+help manual (<code>:help spacevim-layers</code>) and <a href="https://spacevim.org/layers/">the online
+documentation</a> for usage info and
+options regarding your layer of interest. However as only 104 of 124
+available layers are documented online, the most reliable method is
+reading the layer's source itself, which can all be found inside
+<code>~/.SpaceVim/autoload/SpaceVim/layers/</code>.</p>
+<h4>Vim-Style Config</h4>
+<p>Once SpaceVim's options become insufficient for your customization
+needs, or if you wish to migrate without abandoning the gems from
+your own <code>.vimrc</code>, you can supply them to SpaceVim through its hooks
+mechanism, which SpaceVim calls its "bootstrap functions". These two
+functions can be specified with <code>bootstrap_before</code> and <code>bootstrap_after</code>
+in the <code>[options]</code> section of your <code>init.toml</code> config like so:</p>
+<div class="highlight"><pre><span></span><span class="k">[options]</span>
+  <span class="c1"># ...</span>
+  <span class="c1"># your other options</span>
+  <span class="c1"># ...</span>
+  <span class="n">bootstrap_before</span> <span class="o">=</span> <span class="s">&quot;my_config#before&quot;</span>
+  <span class="n">bootstrap_after</span> <span class="o">=</span> <span class="s">&quot;my_config#after&quot;</span>
+</pre></div>
+
+
+<p><code>bootstrap_before</code> is called prior to the loading of any layers
+and plugins, while <code>bootstrap_after</code> is called after that when the
+<code>VimEnter</code> event trigger occurs. In the example above, SpaceVim will
+look for <code>my_config.vim</code> and call its <code>my_config#after</code> function. This
+script should be placed inside your <code>~/.SpaceVim.d/autoload/</code> directory,
+which SpaceVim has already conveniently added to your <code>runtimepath</code>.
+Here is an example of a <code>my_config#after</code> bootstrap function that sets
+some options not available via the TOML config:</p>
+<div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! my_config#after</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
+  <span class="n">call</span> <span class="s">SpaceVim#logger#info(&quot;bootstrap_after</span> <span class="s">called&quot;)</span>     <span class="s">&quot;</span> <span class="s">log</span> <span class="s">bootstrap_after</span> <span class="s">call</span>
+  <span class="n">set</span> <span class="s">inccommand=nosplit</span>    <span class="s">&quot;</span> <span class="s">display</span> <span class="s">result</span> <span class="s">of</span> <span class="s">incremental</span> <span class="s">commands</span> <span class="s">(ex.</span> <span class="s">:%s/patt1/patt2/g)</span>
+  <span class="n">set</span> <span class="s">updatetime=500</span>        <span class="s">&quot;</span> <span class="s">GitGutter</span> <span class="s">uses</span> <span class="s">this</span> <span class="s">as</span> <span class="s">its</span> <span class="s">update</span> <span class="s">interval</span> 
+  <span class="n">set</span> <span class="s">formatprg=par</span>         <span class="s">&quot;</span> <span class="s">use</span> <span class="s">par</span> <span class="s">for</span> <span class="s">reflowing</span> <span class="s">text</span> <span class="s">lines</span>
+  <span class="n">tnoremap</span> <span class="s">jk</span> <span class="o">&lt;</span><span class="n">C</span><span class="o">-\&gt;&lt;</span><span class="n">C</span><span class="o">-</span><span class="n">n</span><span class="o">&gt;</span>    &quot; <span class="n">allow</span> <span class="n">jk</span> <span class="n">to</span> <span class="n">exit</span> <span class="n">into</span> <span class="n">normal</span> <span class="n">mode</span> <span class="n">in</span> <span class="n">terminal</span> <span class="n">buffer</span>
+<span class="n">endfunction</span>
+</pre></div>
+
+
+<p>It's also a good place for you to load and configure custom plugins not
+belonging to any SpaceVim layer. For example:</p>
+<div class="highlight"><pre><span></span><span class="err">let g:spacevim_custom_plugins = [</span>
+<span class="err">      \[&#39;tpope/vim-eunuch&#39;],</span>
+<span class="err">      \[&#39;tpope/vim-rhubarb&#39;],</span>
+<span class="err">      \[&#39;dahu/vimple&#39;],</span>
+<span class="err">      \[&#39;AndrewRadev/linediff.vim&#39;],</span>
+<span class="err">      \]</span>
+</pre></div>
+
+
+<!-- fix code block above; currently generated w/ class="error" -->
+
+<h2>Features</h2>
+<p>SpaceVim is integrated with many valuable tools, such as debugging,
+testing, tags, offline documentation, etc. But two features I've
+personally found to be indispensable are the fuzzy finding and grepping
+utilities.</p>
+<h4>Fuzzy Finding</h4>
+<p>Currently, there is a choice of 5 fuzzy finders:</p>
+<ul>
+<li><a href="https://github.com/kien/ctrlp.vim">ctrlp.vim</a> by Kien</li>
+<li><a href="https://github.com/Shougo/denite.nvim">denite.nvim</a> by Shougo</li>
+<li><a href="https://github.com/junegunn/fzf.vim">fzf.vim</a> by Junegunn</li>
+<li><a href="https://github.com/Yggdroot/LeaderF">LeaderF</a> by Yggdroot</li>
+<li><a href="https://github.com/Shougo/unite.vim">unite.vim</a> also by Shougo</li>
+</ul>
+<p>What SpaceVim offers on top of these individual plugins is standardized
+keybindings. So if you know the SpaceVim keybindings (all discoverable
+through the <code>SPC</code>-leader guide if you recall), then trying out a
+different fuzzy finder becomes a trivial one-line change in your TOML
+config. For example, <code>SPC f f</code> opens up a fuzzy finder buffer that
+recursively searches for files inside your current active buffer's
+directory; and <code>SPC p f</code> recursively searches from your project's root.</p>
+<figure>
+<img src="images/01-c_fzf-files.gif" style="width:100%;">
+<figcaption style="text-align: center;">fuzzy finding files with fzf</figcaption>
+</figure>
+
+<p>While <code>SPC b b</code> will do the same, but through your list of all loaded
+buffers.</p>
+<figure>
+<img src="images/01-d_fzf-buffers.gif" style="width:100%;">
+<figcaption style="text-align: center;">fuzzy finding loaded buffers with fzf</figcaption>
+</figure>
+
+<h4>Grepping</h4>
+<p>SpaceVim also has great support for grepping with tools like
+<a href="https://github.com/mhinz/vim-grepper">vim-grepper</a> and
+<a href="https://github.com/wsdjeg/FlyGrep.vim">FlyGrep.vim</a>. These utilize
+the power of your existing system grepping tools (such as <code>rg</code>, <code>ag</code>,
+<code>ack</code> or just plain old <code>grep</code>) to search through your entire project
+directory for occurrences of whatever query pattern you've specified.
+vim-grepper presents its search results in a quickfix buffer.</p>
+<figure>
+<img src="images/01-e_grepper.gif" style="width:100%;">
+<figcaption style="text-align: center;">grepping with vim-grepper</figcaption>
+</figure>
+
+<p>While FlyGrep dynamically updates its matches as you narrow down your
+query.</p>
+<figure>
+<img src="images/01-f_flygrep.gif" style="width:100%;">
+<figcaption style="text-align: center;">grepping with FlyGrep</figcaption>
+</figure>
+
+<h2>Stability</h2>
+<p>I've made the case for the viability of SpaceVim as your vim config.
+However as alluded to earlier in the introduction, it's not without some
+rough edges. With the project being 2+ years old and many thousands of
+users, SpaceVim's core layers and support for popular languages like
+Python, Ruby, JavaScript, Java, C++, C# and such are rock solid. But its
+hiccups (though mostly minor) do become more apparent as you explore
+its more niche features, and use it for less popular languages like
+Lua, for which I experienced noticeable delays when working with even
+modestly-sized buffers due to performance issues of <code>foldexpr</code> (current
+workaround is to not use <code>expr</code> as the method for creating folds).</p>
+<p>Furthermore, although it's certainly great to have many choices of
+tools, it sometimes feels like SpaceVim has spread itself a bit too thin
+as a result, thereby giving an under-polished user experience with some
+features. For example, denite was in a broken state for a while due to
+upstream breaking the API. And while there are many layers, not all are
+well documented, leaving one to sometimes rely on the source to fully
+figure out how to configure them.</p>
+<p>When it comes to grepping, the different ways vim-grepper and FlyGrep
+present their matches (quickfix vs. dynamically updated temp buffer) are
+arguably both useful depending on the situation. But making the same case
+for having a glut of grepper tools is harder, which is the default state in
+SpaceVim. IMO a better UX would be provided by simply using the best grepper
+(<a href="https://github.com/BurntSushi/ripgrep">ripgrep</a>), with perhaps the runner-up
+(<code>ag</code>, <a href="https://github.com/ggreer/the_silver_searcher">The Silver Searcher</a>)
+included as a failsafe. This inconsistency was exacerbated by the fact that
+vim-grepper and FlyGrep were originally configured to use different lists of
+grepping tools, until I standardized them in a pull request.</p>
+<h2>Community</h2>
+<p>Technical details aside, at almost 200 contributors, 1k+ forks and 12k+
+stars <a href="https://github.com/SpaceVim/SpaceVim">on GitHub</a>, SpaceVim's
+extremely active community, spearheaded by its founder Wang Shidong, is
+arguably the project's greatest strength. The maintainer is proactively
+opens issues and merges pull requests, and diligently fixes bugs as
+soon as they appear. He and other knowledgeable members frequently help
+out users in the various chat channels listed below, which you should
+definitely check out if you ever find yourself needing assistance.</p>
+<ul>
+<li>SpaceVim/SpaceVim <a href="https://gitter.im/SpaceVim/SpaceVim">on Gitter</a></li>
+<li>&#35;spacevim <a href="https://webchat.freenode.net/#spacevim">on FreeNode</a></li>
+<li>t.me/SpaceVim <a href="https://t.me/SpaceVim">on Telegram</a></li>
+<li>&#35;spacevim:matrix.org <a href="https://riot.im/app/#/room/%23spacevim:matrix.org">on Matrix</a></li>
+<li>&#35;spacevim on <a href="https://spacevim.slack.com/messages/C88CTJ62J">Slack</a></li>
+<li>&#35;spacevim on <a href="https://discord.gg/xcRQnF8">Discord</a></li>
+<li>SpaceVim on <a href="https://chat.whatsapp.com/invite/E3HvOvKmFfHDDIq82Rfflx">WhatsApp</a></li>
+</ul>
+<p>Note that all messages sent through any one of the above chat platforms
+are relayed to the rest with a bot, so just pick your favorite.</p>
+<h2>Final Words</h2>
+<p>SpaceVim comes preconfigured and works nicely out-of-the-box. It's
+modular design is not only a great choice from a development POV, it
+also allows for convenient high-level customizations.</p>
+<p>Although the core and commonly used aspects of the project are quite
+stable and cohesive, I do believe the project will be even better
+served by being less accommodating in granting users the freedom to
+mix-and-match available components and configurations, as it's simply
+impossible for all combinations of tools and settings to produce optimal
+development environments. SpaceVim's current paradigm may occasionally
+lead to minor instabilities and inconsistencies, but if you don't mind
+venturing off the well-beaten path, nor getting your hands a bit dirty
+from time to time, then it can still nonetheless be a great option for
+you.</p>
+<p>I wholeheartedly welcome newcomers to SpaceVim as both users and
+contributors, especially given its welcoming and helpful community,
+where issues are tackled quickly and PRs merged regularly.</p>
+<hr>
+
+<h6>This post originally appeared on <a href="https://medium.com/@jyscao/spacevim-a-vimmers-eval-d2020118b517?source=friends_link&amp;sk=54d2f94d9cd95aeaa5feb223abea7d51">Medium</a>.</h6>                </article>
+            </aside><!-- /#featured -->
+        <section id="extras" class="body">
+                <div class="blogroll">
+                        <h2>links</h2>
+                        <ul>
+                            <li><a href="https://getpelican.com/">Pelican</a></li>
+                        </ul>
+                </div><!-- /.blogroll -->
+                <div class="social">
+                        <h2>social</h2>
+                        <ul>
+
+                            <li><a href="https://github.com/jyscao">GitHub</a></li>
+                            <li><a href="https://www.reddit.com/user/jyscao">Reddit</a></li>
+                            <li><a href="https://medium.com/@jyscao">Medium</a></li>
+                        </ul>
+                </div><!-- /.social -->
+        </section><!-- /#extras -->
+
+        <footer id="contentinfo" class="body">
+                <address id="about" class="vcard body">
+                Proudly powered by <a href="https://getpelican.com/">Pelican</a>, which takes great advantage of <a href="https://www.python.org/">Python</a>.
+                </address><!-- /#about -->
+
+                <p>The theme is by <a href="https://www.smashingmagazine.com/2009/08/designing-a-html-5-layout-from-scratch/">Smashing Magazine</a>, thanks!</p>
+        </footer><!-- /#contentinfo -->
+
+</body>
+</html>

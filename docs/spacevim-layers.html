@@ -3,8 +3,9 @@
 <head>
         <meta charset="utf-8" />
         <meta name="generator" content="Pelican" />
-        <title>Jethro's Tech Blog</title>
+        <title>SpaceVim: Layers Under-the-Hood</title>
         <link rel="stylesheet" href="/theme/css/main.css" />
+        <meta name="description" content="a look into SpaceVim's internal workings, in particular its layers architecture" />
 </head>
 
 <body id="index" class="home">
@@ -12,14 +13,19 @@
                 <h1><a href="/">Jethro's Tech Blog</a></h1>
                 <nav><ul>
                     <li><a href="/pages/about-me.html">About Me</a></li>
-                    <li><a href="/category/programming.html">Programming</a></li>
+                    <li class="active"><a href="/category/programming.html">Programming</a></li>
                     <li><a href="/category/tools.html">Tools</a></li>
                 </ul></nav>
         </header><!-- /#banner -->
+<section id="content" class="body">
+  <article>
+    <header>
+      <h1 class="entry-title">
+        <a href="/spacevim-layers.html" rel="bookmark"
+           title="Permalink to SpaceVim: Layers Under-the-Hood">SpaceVim: Layers Under-the-Hood</a></h1>
+    </header>
 
-            <aside id="featured" class="body">
-                <article>
-                    <h1 class="entry-title"><a href="/spacevim-layers.html">SpaceVim: Layers Under-the-Hood</a></h1>
+    <div class="entry-content">
 <footer class="post-info">
         <abbr class="published" title="2019-10-28T00:00:00-04:00">
                 Published: Mon 28 October 2019
@@ -34,7 +40,7 @@
         </address>
 <p>In <a href="/category/programming.html">Programming</a>.</p>
 <p>tags: <a href="/tag/text-editor.html">text-editor</a> <a href="/tag/spacevim.html">spacevim</a> <a href="/tag/neovim.html">neovim</a> <a href="/tag/vim.html">vim</a> </p>
-</footer><!-- /.post-info --><p>This article provides an introduction to the internals of SpaceVim
+</footer><!-- /.post-info -->      <p>This article provides an introduction to the internals of SpaceVim
 layers, with the end goal being to prepare interested SpaceVim users
 with creating their own. To achieve this, I'll first present a
 high-level overview of how SpaceVim layers work in general, then give a
@@ -324,40 +330,11 @@ hope it also provided a bit of inspiration for some of you to give it at
 shot at creating your own layers. I certainly will continue to do so!</p>
 <hr>
 
-<h6>This post originally appeared on <a href="https://medium.com/swlh/spacevim-layers-under-the-hood-3dba2a02d13a?source=friends_link&amp;sk=bf0ae1b88b4464f46d6eddae3378e17a">Medium</a>.</h6>                </article>
-            </aside><!-- /#featured -->
-                <section id="content" class="body">
-                    <h1>Other articles</h1>
-                    <hr />
-                    <ol id="posts-list" class="hfeed">
+<h6>This post originally appeared on <a href="https://medium.com/swlh/spacevim-layers-under-the-hood-3dba2a02d13a?source=friends_link&amp;sk=bf0ae1b88b4464f46d6eddae3378e17a">Medium</a>.</h6>
+    </div><!-- /.entry-content -->
 
-            <li><article class="hentry">
-                <header>
-                    <h1><a href="/spacevim-intro.html" rel="bookmark"
-                           title="Permalink to SpaceVim: A Vimmer's Eval">SpaceVim: A Vimmer's Eval</a></h1>
-                </header>
-
-                <div class="entry-content">
-<footer class="post-info">
-        <abbr class="published" title="2019-10-14T00:00:00-04:00">
-                Published: Mon 14 October 2019
-        </abbr>
-		<br />
-        <abbr class="modified" title="2020-10-11T00:00:00-04:00">
-                Updated: Sun 11 October 2020
-        </abbr>
-
-        <address class="vcard author">
-                By                         <a class="url fn" href="/author/jethro-cao.html">Jethro Cao</a>
-        </address>
-<p>In <a href="/category/tools.html">Tools</a>.</p>
-<p>tags: <a href="/tag/text-editor.html">text-editor</a> <a href="/tag/spacevim.html">spacevim</a> <a href="/tag/neovim.html">neovim</a> <a href="/tag/vim.html">vim</a> </p>
-</footer><!-- /.post-info -->                <p>an introductory overview of SpaceVim and its basic features and functionalities</p>
-                <a class="readmore" href="/spacevim-intro.html">read more</a>
-                </div><!-- /.entry-content -->
-            </article></li>
-                </ol><!-- /#posts-list -->
-                </section><!-- /#content -->
+  </article>
+</section>
         <section id="extras" class="body">
                 <div class="blogroll">
                         <h2>links</h2>
