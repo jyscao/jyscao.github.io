@@ -4,7 +4,7 @@ Modified: 2020-10-11
 Category: Tools
 Tags: vim-plugin, text-editor
 Slug: vim-plugin-greprtpscr
-Summary: Plugin for __grep__ping through your Vim's __r__un__t__ime__p__ath & __scr__iptnames
+Summary: Introducing a plugin to grep through your Vim's runtimepath & scriptnames.
 
 
 
