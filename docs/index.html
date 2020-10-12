@@ -12,14 +12,353 @@
                 <h1><a href="/">Jethro's Tech Blog</a></h1>
                 <nav><ul>
                     <li><a href="/pages/about-me.html">About Me</a></li>
-                    <li><a href="/category/programming.html">Programming</a></li>
+                    <li><a href="/category/devops.html">DevOps</a></li>
                     <li><a href="/category/tools.html">Tools</a></li>
                 </ul></nav>
         </header><!-- /#banner -->
 
             <aside id="featured" class="body">
                 <article>
-                    <h1 class="entry-title"><a href="/spacevim-layers.html">SpaceVim: Layers Under-the-Hood</a></h1>
+                    <h1 class="entry-title"><a href="/guix-packaging.html">Guix Packaging by Example</a></h1>
+<footer class="post-info">
+        <abbr class="published" title="2019-12-25T00:00:00-05:00">
+                Published: Wed 25 December 2019
+        </abbr>
+		<br />
+        <abbr class="modified" title="2020-10-11T00:00:00-04:00">
+                Updated: Sun 11 October 2020
+        </abbr>
+
+        <address class="vcard author">
+                By                         <a class="url fn" href="/author/jethro-cao.html">Jethro Cao</a>
+        </address>
+<p>In <a href="/category/devops.html">DevOps</a>.</p>
+<p>tags: <a href="/tag/package-management.html">package-management</a> <a href="/tag/guix.html">guix</a> <a href="/tag/guile.html">guile</a> </p>
+</footer><!-- /.post-info --><p><img src="images/04-1_guix.png" style="width:50%;" alt="Guix logo"></p>
+<p>A key design principle behind <a href="http://guix.gnu.org/">GNU Guix</a> as a
+package manager is its extensibility, i.e. allowing users to easily
+write their own package definitions. Thus this post aims to serve as a
+starting reference for doing precisely that.</p>
+<p>The package I'll be using for this demonstration is
+<a href="https://github.com/keharriso/love-nuklear/">LÖVE-Nuklear</a>,
+which provide bindings to the immediate mode GUI library,
+<a href="https://github.com/Immediate-Mode-UI/Nuklear">Nuklear</a> for the Lua game
+engine, <a href="https://love2d.org/">LÖVE</a>.</p>
+<h2>Load Required Modules</h2>
+<p>All Guix packages are defined in source files written in Guile Scheme,
+with each source corresponding to a single module that contains packages
+related along a common theme. For example, libraries for specific
+programming languages like Golang or Rust, enduser applications for
+music or games, implementations of particular protocols like FTP or
+IPFS, and so on.</p>
+<p>My example module shall only contain a single package, but in general
+there can be many. To begin, we first load the modules required to
+define the package:</p>
+<div class="highlight"><pre><span></span><span class="p">(</span><span class="nf">define-module</span> <span class="p">(</span><span class="nf">love-nuklear</span><span class="p">)</span>
+               <span class="o">#</span><span class="nv">:use-module</span> <span class="p">(</span><span class="nf">guix</span> <span class="nv">packages</span><span class="p">)</span>
+               <span class="o">#</span><span class="nv">:use-module</span> <span class="p">(</span><span class="nf">guix</span> <span class="nv">git-download</span><span class="p">)</span>
+               <span class="o">#</span><span class="nv">:use-module</span> <span class="p">(</span><span class="nf">guix</span> <span class="nv">build-system</span> <span class="nv">cmake</span><span class="p">)</span>
+               <span class="o">#</span><span class="nv">:use-module</span> <span class="p">(</span><span class="nf">guix</span> <span class="nv">licenses</span><span class="p">)</span>
+               <span class="o">#</span><span class="nv">:use-module</span> <span class="p">(</span><span class="nf">gnu</span> <span class="nv">packages</span> <span class="nv">lua</span><span class="p">))</span>
+</pre></div>
+
+
+<p>All package definitions require at least 4 modules, which are all
+located in the <code>guix</code> namespace:</p>
+<ol>
+<li>
+<p><code>packages</code>, this module exports the <code>&lt;package&gt;</code> record type, of which
+your package definition shall become an instance of</p>
+</li>
+<li>
+<p>source code retrieval module, typically <code>download</code> (for downloading
+sources over HTTP(S)) or <code>git-download</code> (as shall be seen in this
+example); other methods such as <code>hg-download</code> and <code>svn-download</code> are
+also available</p>
+</li>
+<li>
+<p>build-system, such as <code>gnu</code> (GNU Make being its core), <code>meson</code> with
+its <code>ninja</code> backend for C/C++, <code>dune</code> (for OCaml), <code>cmake</code> (used for
+this example), etc.</p>
+</li>
+<li>
+<p><code>licenses</code>, which is self-explanatory</p>
+</li>
+</ol>
+<p>Of course in practice, the vast majority of software contain
+dependencies that must also be loaded. And if these dependencies are
+already packaged, then they can be found under the <code>gnu packages</code>
+namespace. For my example of <code>love-nuklear</code>, the only dependency is the
+<code>luajit</code> package from the <code>lua</code> module.</p>
+<h2>Fill Basic Info &amp; Metadata</h2>
+<p>Now it's time to define the actual package, starting with its basic
+information and metadata:</p>
+<div class="highlight"><pre><span></span><span class="p">(</span><span class="nf">define-public</span> <span class="nv">love-nuklear</span>
+ <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">version</span> <span class="s">&quot;v2.6&quot;</span><span class="p">)</span>
+       <span class="p">(</span><span class="nf">commit</span> <span class="s">&quot;fef4e00a602efb16c57ae962850b6e7a01f7a29a&quot;</span><span class="p">))</span>
+  <span class="p">(</span><span class="nf">package</span>
+   <span class="p">(</span><span class="nf">name</span> <span class="s">&quot;love-nuklear&quot;</span><span class="p">)</span>
+   <span class="p">(</span><span class="nf">version</span> <span class="p">(</span><span class="nf">git-version</span> <span class="nv">version</span> <span class="s">&quot;+4commits&quot;</span> <span class="nv">commit</span><span class="p">))</span>
+   <span class="c1">;; ...</span>
+   <span class="c1">;; ...</span>
+   <span class="c1">;; ...</span>
+   <span class="p">(</span><span class="nf">synopsis</span> <span class="s">&quot;Lightweight immediate mode GUI for LÖVE games&quot;</span><span class="p">)</span>
+   <span class="p">(</span><span class="nf">description</span> <span class="s">&quot;LÖVE is a Lua framework for making 2D games.  Nuklear</span>
+<span class="s">is a minimal state immediate mode graphical user interface toolkit.  This</span>
+<span class="s">package is the Nuklear bindings for LÖVE created by Kevin Harrison.&quot;</span><span class="p">)</span>
+   <span class="p">(</span><span class="nf">home-page</span> <span class="s">&quot;https://github.com/keharriso/love-nuklear/&quot;</span><span class="p">)</span>
+   <span class="p">(</span><span class="nf">license</span> <span class="nv">expat</span><span class="p">))))</span>
+</pre></div>
+
+
+<p>A few points worth mentioning:</p>
+<ul>
+<li>
+<p>Guix packages are defined via <code>define-public</code> by convention. This
+eliminates having to manually declare the package definiton for <code>export</code>
+as part of the module's public interface.</p>
+</li>
+<li>
+<p>The <code>version</code> field can be any string, so a simple <code>"v2.6"</code> string
+literal would be equally valid in the above. But since I'll be using
+<code>git-download</code>, I wanted to provide maximum versioning info for the sake
+of reproduciblity. Thus the <code>git-version</code> procedure was used, which
+takes 3 arguments: <code>version</code>, <code>revision</code>, <code>commit</code> hash, and evaluates
+to an informative yet succinct string to be used as the version ID of
+the package.</p>
+</li>
+<li>
+<p>If the software being packaged is multi-licensed, the <code>license</code> field
+can be set to a list representing such</p>
+</li>
+</ul>
+<h2>Fetch Source</h2>
+<p>As briefly mentioned earlier, although Guix supports several source
+fetching methods, in practice you'll mostly be using either <code>url-fetch</code>
+from the <code>download</code> module, or <code>git-fetch</code> from the <code>git-download</code>
+module. Whenever possible, you should prefer the former, since it is
+more efficient.</p>
+<p>For LÖVE-Nuklear however, <code>git-fetch</code> was needed because the source
+code of <a href="https://github.com/Immediate-Mode-UI/Nuklear">Nuklear</a>, which
+is not bundled in the tarball release, but is instead tracked as a
+git-submodule, is required to build the final shared object. So to do
+this, we use <code>git-fetch</code> with <code>(recursive? #t)</code>, as shown below:</p>
+<div class="highlight"><pre><span></span>   <span class="p">(</span><span class="nf">source</span> <span class="p">(</span><span class="nf">origin</span>
+            <span class="p">(</span><span class="nf">method</span> <span class="nv">git-fetch</span><span class="p">)</span>
+            <span class="p">(</span><span class="nf">uri</span> <span class="p">(</span><span class="nf">git-reference</span>
+                  <span class="p">(</span><span class="nf">url</span> <span class="s">&quot;https://github.com/keharriso/love-nuklear/&quot;</span><span class="p">)</span>
+                  <span class="p">(</span><span class="nf">commit</span> <span class="nv">commit</span><span class="p">)</span>
+                  <span class="p">(</span><span class="nf">recursive?</span> <span class="no">#t</span><span class="p">)))</span>
+            <span class="c1">;; NOTE: the HEAD of the Nuklear git-submodule is at commit</span>
+            <span class="c1">;; &quot;adc52d710fe3c87194b99f540c53e82eb75c2521&quot; of Oct 1 2019</span>
+            <span class="p">(</span><span class="nf">file-name</span> <span class="p">(</span><span class="nf">git-file-name</span> <span class="nv">name</span> <span class="nv">version</span><span class="p">))</span>
+            <span class="p">(</span><span class="nf">sha256</span>
+             <span class="p">(</span><span class="nf">base32</span>
+              <span class="s">&quot;15qmy8mfwkxy2x9rmxs6f9cyvjvwwj6yf78bs863xmc56dmjzzbn&quot;</span><span class="p">))))</span>
+</pre></div>
+
+
+<p>Before building from the source, Guix checks that the hash of the
+downloaded files is the same as that supplied by you, the packager.
+When using <code>url-fetch</code>, the base32 hash of the project's source will
+be directly computed by Guix and displayed for your convenience after
+you execute <code>$ guix download &lt;https://url-package-source&gt;</code>. When
+using <code>git-fetch</code> however, you must first <code>git clone</code> the repository
+(including the submodules if applicable), then invoke <code>$ guix hash -xr
+&lt;path/to/git/source&gt;</code>, where the <code>-x</code> flag tells Guix to ignore VCS
+files and <code>-r</code> tells Guix to compute the hash recursively.</p>
+<h2>Specify Dependencies</h2>
+<p>Guix differentiates between 3 types of dependencies:</p>
+<ul>
+<li>
+<p><code>native-inputs</code>: build but not runtime dependencies</p>
+</li>
+<li>
+<p><code>inputs</code>: runtime dependencies</p>
+</li>
+<li>
+<p><code>propagated-inputs</code>: similar to <code>inputs</code>, but can also be useful
+for specifying packages that should be installed alongside your main
+package. You might want this when for example, header files from another
+library are required to compile the package in question, or to gain
+access to runtime libraries in languages that lack the facility to
+record runtime search paths.</p>
+</li>
+</ul>
+<p>As already stated, the only runtime dependency, and thus <code>input</code> of
+<code>love-nuklear</code> is <code>luajit</code>:</p>
+<div class="highlight"><pre><span></span>   <span class="p">(</span><span class="nf">inputs</span>
+    <span class="o">`</span><span class="p">((</span><span class="s">&quot;luajit&quot;</span> <span class="o">,</span><span class="nv">luajit</span><span class="p">)))</span>
+</pre></div>
+
+
+<h2>Fine-Tune Build Procedure</h2>
+<p>At the time of writing, Guix provides modules for 30+ <a href="https://guix.gnu.org/manual/en/html_node/Build-Systems.html">build
+systems</a>.
+From the foundational <code>gnu-build-system</code>, which all other build
+systems inherit from to one degree or another, to language specific
+ones like <code>cargo-build-system</code> for Rust, <code>dune-build-system</code> for
+OCaml, <code>python-build-system</code>, etc., to build script generators like
+<code>meson-build-system</code> and <code>cmake-build-system</code>.</p>
+<p>Note that in addition to representing the build procedure to be used,
+the <code>build-system</code> field also implicitly specify dependencies of said
+build procedure. Thus it is unnecessary to manually specify these build
+dependencies as <code>native-inputs</code>.</p>
+<p>The following snippet shows the first build procedure that was
+successful in installing the <code>love-nuklear</code> package:</p>
+<div class="highlight"><pre><span></span>   <span class="p">(</span><span class="nf">build-system</span> <span class="nv">cmake-build-system</span><span class="p">)</span>
+   <span class="p">(</span><span class="nf">arguments</span>
+    <span class="o">`</span><span class="p">(</span><span class="o">#</span><span class="nv">:build-type</span> <span class="s">&quot;Release&quot;</span>
+      <span class="o">#</span><span class="nv">:tests?</span> <span class="no">#f</span>
+      <span class="o">#</span><span class="nv">:phases</span>
+      <span class="p">(</span><span class="nf">modify-phases</span> <span class="nv">%standard-phases</span>
+       <span class="p">(</span><span class="nf">replace</span> <span class="ss">&#39;install</span>
+        <span class="p">(</span><span class="nf">lambda*</span> <span class="p">(</span><span class="o">#</span><span class="nv">:key</span> <span class="nv">outputs</span> <span class="o">#</span><span class="nv">:allow-other-keys</span><span class="p">)</span>
+                 <span class="p">(</span><span class="k">let* </span><span class="p">((</span><span class="nf">out</span> <span class="p">(</span><span class="nf">assoc-ref</span> <span class="nv">outputs</span> <span class="s">&quot;out&quot;</span><span class="p">))</span>
+                        <span class="p">(</span><span class="nf">share</span> <span class="p">(</span><span class="nb">string-append </span><span class="nv">out</span> <span class="s">&quot;/share&quot;</span><span class="p">)))</span>
+                       <span class="p">(</span><span class="nf">install-file</span> <span class="s">&quot;nuklear.so&quot;</span> <span class="nv">share</span><span class="p">)</span>
+                       <span class="no">#t</span><span class="p">))))))</span>
+</pre></div>
+
+
+<ul>
+<li>
+<p>The <code>#:build-type</code> argument is specific to the <code>cmake-build-system</code>,
+which can also accommodate other build flags typically passed on the
+command line to <code>cmake</code>.</p>
+</li>
+<li>
+<p>All build systems accept the <code>#:tests?</code> argument, which indicates
+whether tests should be run after your package has been successfully
+built (<code>#t</code> by default).</p>
+</li>
+<li>
+<p>The phases of the build procedure itself are modifiable. And quite
+often, one may find oneself needing to do just that, since not all
+software fully adhere to standarized build procedures.</p>
+</li>
+<li>
+<p>This was the case for LÖVE-Nuklear when I began my attempt in
+packaging it. Its CMake file did not generate an install target for the
+output <code>nuklear.so</code>. Therefore the standard <code>'install</code> phase of the
+build procedure was replaced by a custom one defined by the <code>lambda</code>
+expression seen above.</p>
+</li>
+<li>
+<p><code>out</code> represents the location of the output directory, which is
+obtained by Guix via a <code>getenv</code> call under-the-hood during runtime, as
+it cannot be known beforehand due to it depending on all the inputs of
+the package definition.</p>
+</li>
+</ul>
+<p>In the end though, I decided it was better to make the change
+upstream, i.e. add an install target to the CMake build procedure of
+LÖVE-Nuklear. After this change was kindly merged by its author,
+<code>love-nuklear</code> was then able to be built and installed smoothly with
+zero modifications to the standard phases of the <code>cmake-build-system</code>,
+resulting in the cleaner snippet shown below:</p>
+<div class="highlight"><pre><span></span>   <span class="p">(</span><span class="nf">build-system</span> <span class="nv">cmake-build-system</span><span class="p">)</span>
+   <span class="p">(</span><span class="nf">arguments</span>
+    <span class="o">`</span><span class="p">(</span><span class="o">#</span><span class="nv">:build-type</span> <span class="s">&quot;Release&quot;</span>
+      <span class="o">#</span><span class="nv">:tests?</span> <span class="no">#f</span><span class="p">))</span>
+</pre></div>
+
+
+<p>But just keep in mind that, in order to produce a successful package
+build, sometimes the only option is to modify the standard phases of
+one's build system.</p>
+<h2>Test Package Definition</h2>
+<p>Once the first draft of your package definition is complete, you are
+then ready to test out its correctness by attempting to build it
+locally.</p>
+<p>To do so, just run <code>$ guix build -K --file=&lt;path/to/package/def&gt;</code>.
+Make sure to add a line at the end of your package module to actually
+evaluate the package definiton (<code>love-nuklear</code> for my example), as
+the <code>--file</code> flag tells Guix to build the package that the source
+within <code>&lt;path/to/package/def&gt;</code> evaluates to. The <code>-K</code> flag is short for
+<code>--keep-failed</code>, thus failed partial build results will be left in your
+<code>/tmp</code> directory instead of being removed.</p>
+<p>Another source of useful debugging information is the build log, which
+in addition to being printed to STDIN on each build, is also written to
+an appropriate directory identified by its build hash in <code>/var/guix/</code>.</p>
+<p>Through the iterative process of fixing errors reported in the build
+log, and occasionally inspecting the contents of failed partial builds,
+I was able to quickly bring the package definition of LÖVE-Nuklear
+to a successful state, whose constituent components are exactly the
+snippets already showcased earlier. But for viewing convenience, here's
+the finalized package definiton in its totality:</p>
+<p><strong>TODO: show full <code>love-nuklear</code> definition gist</strong></p>
+<h2>Contribute to Guix</h2>
+<p>If you'd like to submit your package definition upstream,
+i.e. have it added to the GNU Guix ecosystem, then it's
+important to run <code>$ guix lint</code> before <a href="http://guix.gnu.org/contribute/">submitting it to the
+project</a> as a patch. This command
+performs useful checks on your package definition, ensuring it conforms
+to the GNU Guix standard. All available checkers can be listed with <code>$
+guix lint --list-checkers</code>. Here are what some of them do:</p>
+<ul>
+<li>
+<p>Provide basic validations, such as checking the formatting of your
+package's synopsis and description, the existence of the project's
+home-page URL, and validity of the license(s)</p>
+</li>
+<li>
+<p>Offer technical suggestions, such as the appropriateness of the
+categorizations of your specified inputs, the success or failure of
+compiling a package to its derivation (which of course should succeed if
+you were able to run <code>guix build</code> successfully)</p>
+</li>
+</ul>
+<p>Lastly, I'm pleased to inform that my package definition for
+LÖVE-Nuklear has been accepted into the GNU Guix project. So if you'd
+like to check out this cool GUI module for the LÖVE game engine on Guix
+yourself, then it's as simple as:</p>
+<ol>
+<li><code>$ guix pull</code> to get the latest updates for Guix</li>
+<li><code>$ guix package --install love-nuklear</code></li>
+</ol>
+<hr>
+
+<h6>This post originally appeared on <a href="https://medium.com/swlh/guix-packaging-by-example-6e44ba693fb2?source=friends_link&amp;sk=0ba75dedbaf2a7607c97743ee047d16e">Medium</a>.</h6>                </article>
+            </aside><!-- /#featured -->
+                <section id="content" class="body">
+                    <h1>Other articles</h1>
+                    <hr />
+                    <ol id="posts-list" class="hfeed">
+
+            <li><article class="hentry">
+                <header>
+                    <h1><a href="/vim-plugin-greprtpscr.html" rel="bookmark"
+                           title="Permalink to How to Grep Your Vimscript Sources?">How to Grep Your Vimscript Sources?</a></h1>
+                </header>
+
+                <div class="entry-content">
+<footer class="post-info">
+        <abbr class="published" title="2019-12-01T00:00:00-05:00">
+                Published: Sun 01 December 2019
+        </abbr>
+		<br />
+        <abbr class="modified" title="2020-10-11T00:00:00-04:00">
+                Updated: Sun 11 October 2020
+        </abbr>
+
+        <address class="vcard author">
+                By                         <a class="url fn" href="/author/jethro-cao.html">Jethro Cao</a>
+        </address>
+<p>In <a href="/category/tools.html">Tools</a>.</p>
+<p>tags: <a href="/tag/vim-plugin.html">vim-plugin</a> <a href="/tag/text-editor.html">text-editor</a> </p>
+</footer><!-- /.post-info -->                <p>Plugin for __grep__ping through your Vim's __r__un__t__ime__p__ath &amp; __scr__iptnames</p>
+                <a class="readmore" href="/vim-plugin-greprtpscr.html">read more</a>
+                </div><!-- /.entry-content -->
+            </article></li>
+
+            <li><article class="hentry">
+                <header>
+                    <h1><a href="/spacevim-layers.html" rel="bookmark"
+                           title="Permalink to SpaceVim: Layers Under-the-Hood">SpaceVim: Layers Under-the-Hood</a></h1>
+                </header>
+
+                <div class="entry-content">
 <footer class="post-info">
         <abbr class="published" title="2019-10-28T00:00:00-04:00">
                 Published: Mon 28 October 2019
@@ -32,304 +371,12 @@
         <address class="vcard author">
                 By                         <a class="url fn" href="/author/jethro-cao.html">Jethro Cao</a>
         </address>
-<p>In <a href="/category/programming.html">Programming</a>.</p>
+<p>In <a href="/category/tools.html">Tools</a>.</p>
 <p>tags: <a href="/tag/text-editor.html">text-editor</a> <a href="/tag/spacevim.html">spacevim</a> <a href="/tag/neovim.html">neovim</a> <a href="/tag/vim.html">vim</a> </p>
-</footer><!-- /.post-info --><p>This article provides an introduction to the internals of SpaceVim
-layers, with the end goal being to prepare interested SpaceVim users
-with creating their own. To achieve this, I'll first present a
-high-level overview of how SpaceVim layers work in general, then give a
-demonstration by example of how to create a new one.</p>
-<h2>Theoretical Overview</h2>
-<h4>Bootstrapping</h4>
-<p>When Vim is launched, SpaceVim takes over by sourcing
-<code>~/.SpaceVim/config/main.vim</code>, where after some compatibility and
-environment checks and sets, all SpaceVim features and functionalities
-are set into motion sequentially by the 3 core functions below:</p>
-<ol>
-<li>
-<p><code>SpaceVim#begin()</code>, where various basic options are set, common
-functions and keybindings defined, and default layers initialized</p>
-</li>
-<li>
-<p><code>SpaceVim#custom#load()</code>, where the user's personal configuration,
-namely their <code>init.toml</code> inside <code>~/.SpaceVim.d/</code>, is processed</p>
-</li>
-<li>
-<p>and finally <code>SpaceVim#end()</code>, where among other important setup steps
-– such as initializing autocommands, statusline info, a few key mappings
-and CWD management – the user-enabled layers and their corresponding
-plugins are loaded</p>
-</li>
-</ol>
-<p>It is from inside <code>SpaceVim#end()</code> where functions responsible for the
-loading and configuring of SpaceVim's layers (and thus plugins by proxy)
-are called. And these will be the focus of our explorations.</p>
-<h4>Rationale</h4>
-<p>As I'd explained in <a href="https://medium.com/p/spacevim-a-vimmers-eval-d2020118b517?source=email-a60a2d9ea9d1--writer.postDistributed&amp;sk=54d2f94d9cd95aeaa5feb223abea7d51">my previous
-post</a> 
-on SpaceVim, layers are the modular building blocks of SpaceVim.
-The prototypical layer bundles together related plugins, configures
-them appropriately, and add keybindings to conveniently integrate their
-functionalities into SpaceVim.</p>
-<p>As SpaceVim development continues, with new features, functionalities
-and components consistently added, the modularity provided by layers
-help to ensure the project remains its maintainability and extensibility.</p>
-<h4>Organization</h4>
-<p>Inside <code>../autoload/SpaceVim/layers/</code>, you'll find the vimscript sources
-for the actual layers, for example:</p>
-<ul>
-<li><code>../layers/edit.vim</code></li>
-<li><code>../layers/git.vim</code></li>
-<li><code>../layers/fzf.vim</code></li>
-<li><code>../layers/lsp.vim</code></li>
-<li><code>../layers/shell.vim</code></li>
-</ul>
-<p>There also exist layers organized hierarchically under 3 subdirectories
-of <code>../layers/</code> itself, with some examples being:</p>
-<ul>
-<li><code>../layers/core/statusline.vim</code></li>
-<li><code>../layers/core/tabline.vim</code></li>
-<li><code>../layers/tools/dash.vim</code></li>
-<li><code>../layers/tools/screensaver.vim</code></li>
-<li><code>../layers/lang/haskell.vim</code></li>
-<li><code>../layers/lang/javascript.vim</code></li>
-<li><code>../layers/lang/python.vim</code></li>
-<li><code>../layers/lang/vim.vim</code></li>
-</ul>
-<p>SpaceVim currently provides layer support for 80+ programming languages,
-with more constantly being added all the time.</p>
-<h4>Layer Callbacks</h4>
-<p>A loadable layer "foo" corresponds to a single vimscript source
-<code>../layers/foo.vim</code>, inside which callback functions responsible for
-hooking up the layer's functionalities to SpaceVim are defined. In
-general, there are 3 functions that make up a layer source:</p>
-<ul>
-<li>
-<p><code>SpaceVim#layers#foo#plugins()</code> adds the plugins to be included in
-layer "foo"</p>
-</li>
-<li>
-<p><code>SpaceVim#layers#foo#set_variable(var)</code> retrieves options local
-to layer "foo", if any exists, that are set by the user in their
-<code>init.toml</code> config</p>
-</li>
-<li>
-<p><code>SpaceVim#layers#foo#config()</code> configures the plugins added by layer
-"foo"; and if applicable, defines appropriate SpaceVim autocommands
-and/or keybindings for the functionalities offered by this layer</p>
-</li>
-</ul>
-<p>When <code>SpaceVim#end()</code> is called, SpaceVim will look for the callbacks
-defined above for each enabled layer, thereby loading and configuring
-their functionalities.</p>
-<h2>Practical Demonstration</h2>
-<p>Now let's put theory to practice with a concrete example.
-For this, I shall provide a condensed walkthrough that'll
-highlight the key steps involved in creating my own layer for
-<a href="https://spacevim.org/layers/ctrlspace/">CtrlSpace</a>, a project
-navigation and workflow management plugin.</p>
-<p><strong>1. Create layer source</strong></p>
-<p>First and foremost, you need to create the vimscript source for the
-new layer under <code>../layers/</code>. So for our example, that would be
-<code>../layers/ctrlspace.vim</code>.</p>
-<p><strong>2. Define layer callback</strong></p>
-<ul>
-<li><code>SpaceVim#layers#ctrlspace#plugins</code> for specifying the plugin included in this layer</li>
-<li><code>SpaceVim#layers#ctrlspace#set_variable</code> for retrieving layer-local options set by the user</li>
-<li><code>SpaceVim#layers#ctrlspace#config</code> for configuring key aspects of the plugin and layer</li>
-</ul>
-<div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! SpaceVim#layers#ctrlspace#plugins</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
-    <span class="s">&quot; add plugins for layer</span>
-<span class="s">endfunction</span>
-
-<span class="s">function! SpaceVim#layers#ctrlspace#set_variable(var) abort</span>
-<span class="s">    &quot;</span> <span class="n">set</span> <span class="n">options</span> <span class="n">local</span> <span class="n">to</span> <span class="n">layer</span>
-<span class="n">endfunction</span>
-
-<span class="s">function!</span> <span class="s">SpaceVim#layers#ctrlspace#config()</span> <span class="s">abort</span>
-  <span class="s">&quot; configure plugins</span>
-<span class="s">  &quot;</span> <span class="k">...</span>
-  <span class="s">&quot; add keybindings to SpaceVim</span>
-<span class="s">  &quot;</span> <span class="k">...</span>
-<span class="n">endfunction</span>
-</pre></div>
-
-
-<p>And now we shall implement them one by one.</p>
-<p><strong>3. Specify layer plugins</strong></p>
-<p>The CtrlSpace layer contains the single plugin, "vim-ctrlspace", so we
-can directly return it.</p>
-<div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! SpaceVim#layers#ctrlspace#plugins</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
-    <span class="n">return</span> <span class="s">[</span> <span class="s">[&#39;vim-ctrlspace/vim-ctrlspace&#39;,</span> <span class="s">{&#39;merged&#39;:</span> <span class="s">0}],</span> <span class="s">]</span>
-    &quot; <span class="s">&#39;merged&#39;</span> <span class="n">is</span> <span class="n">an</span> <span class="n">optimization</span> <span class="n">flag</span> <span class="n">used</span> <span class="n">by</span> <span class="n">the</span> <span class="n">plugin</span> <span class="n">manager</span>
-<span class="n">endfunction</span>
-</pre></div>
-
-
-<p>For layers with more than one plugin, you'd add all of them to the
-return list. Note: the second element in each plugin-list is a table
-of some flags understood by the plugin manager, which we need not be
-concerned with for this guide.</p>
-<p><strong>4. Get layer-local options</strong></p>
-<p>In our layer example, the option <code>home-mapping-key</code>, which defaults
-to <code>&lt;C-Space&gt;</code>, sets the main keybinding for invoking CtrlSpace.
-Because for many users <code>&lt;C-Space&gt;</code> may already be occupied, especially
-if they hail from a non-English speaking part of the world, this
-option allows them to change their <code>home-mapping-key</code> to something more
-suitable, such as <code>&lt;C-p&gt;</code>.</p>
-<div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! SpaceVim#layers#ctrlspace#set_variable</span><span class="p">(</span>var<span class="p">)</span><span class="w"> </span><span class="n">abort</span>
-  <span class="n">let</span> <span class="s">s:home_mapping_key</span> <span class="p">=</span> <span class="n">get</span><span class="p">(</span><span class="n">a</span><span class="p">:</span><span class="n">var</span><span class="p">,</span> <span class="s">&#39;home-mapping-key&#39;</span><span class="p">,</span> <span class="n">s</span><span class="p">:</span><span class="n">home_mapping_key</span><span class="p">)</span>
-  <span class="s">&quot; ...</span>
-<span class="s">  &quot;</span> <span class="n">other</span> <span class="n">layer</span> <span class="n">options</span>
-  &quot; <span class="k">...</span>
-<span class="n">endfunction</span>
-</pre></div>
-
-
-<p>The <code>get</code> function looks for a string name matching <code>home-mapping-key</code>
-(2<sup>nd</sup> arg) in the list of layer-local variables
-(1<sup>st</sup> arg) set by the user in their <code>init.toml</code>. If it exists,
-it will set <code>s:home_mapping_key</code> to the value defined by the user
-in their TOML config; if not, it will fall back to an appropriately
-initialized default value passed as the 3<sup>rd</sup> argument to
-<code>get</code>.</p>
-<p><strong>5. Configure layer</strong></p>
-<p><em>a) main plugin settings</em></p>
-<p>With the plugin made available, and user configurations parsed, the
-plugin can finally be appropriately configured.</p>
-<div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! SpaceVim#layers#ctrlspace#config</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
-  <span class="n">let</span> <span class="s">g:CtrlSpaceDefaultMappingKey</span> <span class="p">=</span> <span class="n">s</span><span class="p">:</span><span class="n">home_mapping_key</span>
-  <span class="s">&quot; ...</span>
-<span class="s">  &quot;</span> <span class="n">configuration</span> <span class="n">of</span> <span class="n">other</span> <span class="n">plugin</span> <span class="n">settings</span>
-  &quot; <span class="k">...</span>
-<span class="n">endfunction</span>
-</pre></div>
-
-
-<p>Often times, layer options are made available to user to begin with due
-to the existence of the corresponding settings in your layer plugin(s)
-of choice. So in such cases, just hook them up directly like we did
-above.</p>
-<p><em>b) other plugin settings</em></p>
-<p>An important setting for CtrlSpace is its glob command, which determines
-how it collects and populates the files list for new projects.</p>
-<div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! SpaceVim#layers#ctrlspace#config</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
-  <span class="s">&quot; ...</span>
-<span class="s">  &quot;</span> <span class="k">...</span>
-
-  <span class="n">if</span> <span class="s">executable(&quot;rg&quot;)</span>
-    <span class="n">let</span> <span class="s">g:CtrlSpaceGlobCommand</span> <span class="p">=</span> <span class="s">&#39;rg --color=never --files&#39;</span>
-  <span class="n">elseif</span> <span class="s">executable(&quot;ag&quot;)</span>
-    <span class="n">let</span> <span class="s">g:CtrlSpaceGlobCommand</span> <span class="p">=</span> <span class="s">&#39;ag -l --nocolor -g &quot;&quot;&#39;</span>
-  <span class="n">else</span>
-    <span class="s">let</span> <span class="s">g:CtrlSpaceGlobCommand</span> <span class="p">=</span> <span class="s">&#39;&#39;</span>
-    <span class="n">call</span> <span class="s">SpaceVim#logger#info(&#39;CtrlSpace: **an appropriate warning message**&#39;)</span>
-  <span class="n">endif</span>
-
-  <span class="s">&quot;</span> <span class="s">...</span>
-  &quot; <span class="k">...</span>
-<span class="n">endfunction</span>
-</pre></div>
-
-
-<p>The above snippet also conveniently showcases SpaceVim's logging API,
-which has 3 levels: <code>info</code>, <code>warn</code> and <code>error</code>. The runtime log (shown
-below) can be viewed with the command <code>:SPRuntimeLog</code> or with the <code>SPC h
-L</code> keybinding.</p>
-<figure>
-<img src="images/02-1_runtimelog.png" style="width:100%;">
-<figcaption style="text-align: center;">SpaceVim Runtime Log (lines 9–11 logged by the CtrlSpace layer)</figcaption>
-</figure>
-
-<p><em>c) SpaceVim keybindings</em></p>
-<p>Here's also a good place to configure keybindings to integrate your
-plugins' functionalities into SpaceVim. </p>
-<div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! SpaceVim#layers#ctrlspace#config</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
-  <span class="s">&quot; ...</span>
-<span class="s">  &quot;</span> <span class="k">...</span>
-
-  <span class="n">call</span> <span class="s">SpaceVim#mapping#space#def(&#39;nnoremap&#39;,</span> <span class="s">[&#39;b&#39;,</span> <span class="s">&#39;b&#39;],</span> <span class="s">&#39;CtrlSpace A&#39;,</span> <span class="s">&#39;CtrlSpace: search all buffers&#39;,</span> <span class="s">1)</span>
-  <span class="n">call</span> <span class="s">SpaceVim#mapping#space#def(&#39;nnoremap&#39;,</span> <span class="s">[&#39;p&#39;,</span> <span class="s">&#39;f&#39;],</span> <span class="s">&#39;CtrlSpace O&#39;,</span> <span class="s">&#39;CtrlSpace search project files&#39;,</span> <span class="s">1)</span>
-  <span class="n">call</span> <span class="s">SpaceVim#mapping#space#def(&#39;nnoremap&#39;,</span> <span class="s">[&#39;p&#39;,</span> <span class="s">&#39;b&#39;],</span> <span class="s">&#39;CtrlSpace B&#39;,</span> <span class="s">&#39;CtrlSpace: search bookmarks&#39;,</span> <span class="s">1)</span>
-  <span class="s">&quot; ...</span>
-<span class="s">  &quot;</span> <span class="n">more</span> <span class="n">keybindings</span>
-  &quot; <span class="k">...</span>
-<span class="n">endfunction</span>
-</pre></div>
-
-
-<p>To define a <code>SPC</code>-prefixed keybinding for some functionality of your
-layer, <code>SpaceVim#mapping#space#def</code> is used. This function takes 5
-arguments:</p>
-<ul>
-<li>the mapping type</li>
-<li>the input keys to follow the <code>SPC</code>-prefix</li>
-<li>the command to be executed</li>
-<li>a description for the key-mapped command, which will be displayed in 
-  SpaceVim's discoverable guide prompt</li>
-<li>an integer flag specifying the type of command (i.e. a <code>:</code> command,
-  <code>&lt;plug&gt;</code> mapping, etc.) of the 3<sup>rd</sup> argument</li>
-</ul>
-<p>The most commonly used function you'll be using will be
-<code>SpaceVim#mapping#space#def</code>. But mapping APIs for other prefixes (such
-as <code>&lt;Leader&gt;</code>) also exist under <code>SpaceVim#mapping#</code>.</p>
-<p><strong>6. Test the new layer</strong></p>
-<p>To enable your newly created layer, just add in in your <code>init.toml</code>.
-For my example, the name of the layer to be enabled is of course
-<code>"ctrlspace"</code>. I change the main mapping key for invoking the plugin
-from its default of <code>&lt;C-Space&gt;</code> to <code>&lt;C-p&gt;</code>, and also enable the SpaceVim
-styled keybindings, some of which you saw defined above.</p>
-<div class="highlight"><pre><span></span><span class="k">[[layers]]</span>
- <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;ctrlspace&quot;</span>
- <span class="n">home-mapping-key</span> <span class="o">=</span> <span class="s">&quot;&lt;C-p&gt;&quot;</span>
- <span class="n">enable-spacevim-styled-keys</span> <span class="o">=</span> <span class="kc">true</span>
-</pre></div>
-
-
-<p>If all went well, then you'll have just created a fully functional new
-SpaceVim layer, just like the CtrlSpace example we went through above.</p>
-<h2>Final Words</h2>
-<p>In no particular order, here are a some additional caveats and
-miscellaneous notes on creating new layers:</p>
-<ul>
-<li>
-<p>Language layers are often expected to provide runtime support in
-the form of REPLs or 'runners'. The APIs for setting those up can
-be found in <code>repl.vim</code> and <code>runner.vim</code> respectively (both under
-<code>../autoload/SpaceVim/plugins/</code>)</p>
-</li>
-<li>
-<p>Some plugins may require special configurations either at the time of
-their loading or possibly even before. This can be achieved by creating
-vimscript sources for them under <code>~/.SpaceVim/config/plugins/</code> and
-<code>~/.SpaceVim/config/plugins_before/</code> respectively; then passing the
-<code>loadconf</code> and <code>loadconf_before</code> flags to the plugin manager (just like
-the <code>merged</code> flag seen earlier)</p>
-</li>
-<li>
-<p>Occasionally you might find layers that interact with or depend
-on others. For example, the git and GitHub layers, and the various
-<code>lang</code> layers supported by the LSP layer</p>
-</li>
-<li>
-<p>Last but not least, every new layer should be thoroughly documented.
-Just create a markdown doc, add it under <code>~/.SpaceVim/docs/layers/</code>,
-and SpaceVim will automatically render it for viewing on its site using
-Jekyll.</p>
-</li>
-</ul>
-<p>The primary purpose of this article is to serve as a useful introduction
-into the internals of SpaceVim layers. But perhaps more importantly, I
-hope it also provided a bit of inspiration for some of you to give it at
-shot at creating your own layers. I certainly will continue to do so!</p>
-<hr>
-
-<h6>This post originally appeared on <a href="https://medium.com/swlh/spacevim-layers-under-the-hood-3dba2a02d13a?source=friends_link&amp;sk=bf0ae1b88b4464f46d6eddae3378e17a">Medium</a>.</h6>                </article>
-            </aside><!-- /#featured -->
-                <section id="content" class="body">
-                    <h1>Other articles</h1>
-                    <hr />
-                    <ol id="posts-list" class="hfeed">
+</footer><!-- /.post-info -->                <p>A look into SpaceVim's internal workings, in particular its layers architecture.</p>
+                <a class="readmore" href="/spacevim-layers.html">read more</a>
+                </div><!-- /.entry-content -->
+            </article></li>
 
             <li><article class="hentry">
                 <header>

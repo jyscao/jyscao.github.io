@@ -1,7 +1,7 @@
 Title: SpaceVim: Layers Under-the-Hood
 Date: 2019-10-28
 Modified: 2020-10-11
-Category: Programming
+Category: Tools
 Tags: text-editor, spacevim, neovim, vim
 Slug: spacevim-layers
 Summary: A look into SpaceVim's internal workings, in particular its layers architecture.
