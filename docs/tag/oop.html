@@ -20,7 +20,7 @@
 
             <aside id="featured" class="body">
                 <article>
-                    <h1 class="entry-title"><a href="/interface-cache.html">Program to an Interface: Exercise in Cache Removal</a></h1>
+                    <h1 class="entry-title"><a href="/interface-cache.html">Program to an Interface: An Exercise in Cache Removal</a></h1>
 <footer class="post-info">
         <abbr class="published" title="2020-12-31T00:00:00-05:00">
                 Published: Thu 31 December 2020
@@ -40,65 +40,61 @@
 alt="simple diagram representing two different interfaces">
 </figure>
 
-<h2>Preamble</h2>
-<p>In software engineering, there is this simple yet powerful idea of
-programming to an interface. While the precise manner it's put into
-practice differs depending on the specifics of a given project, the
-core principle behind the idea remains the same. When implemented
+<p>In software engineering, there is the simple yet powerful idea of
+programming to an interface. While the precise manner this is put
+into practice differs depending on the specifics of a given program,
+the core principle behind the idea remains the same. When implemented
 well, software systems that effectively utilize <a href="https://en.wikipedia.org/wiki/Interface-based_programming">interface-based
 programming</a>
 will tend to exhibit desirable characteristics such as loose coupling, high
-cohesion, and better modularity, thereby leading to improved maintainability
-and extensibility.</p>
-<p>In this post, I shall demonstrate how to program to an
-interface using the example of a recent contribution I made to
-<a href="https://github.com/vim-ctrlspace/vim-ctrlspace">Vim-CtrlSpace</a>, a
-workflow-management/fuzzy-finding plugin, which allows its textfile cache to
-be disabled. It's my hope that some intermediate-level programmers who are
-beginning to think about how to improve the designs of their programs would
-find this useful. And while I am aiming to keep the implementation details,
-and even more so the specifics of Vimscript light, kindred sprits who enjoy
-programming in this quirky language might also find an interesting nugget or
-two here.</p>
+cohesion, and better modularity, thereby improving code maintainability and
+extensibility.</p>
+<p>In this post, I'll be explaining how to program to an
+interface by walking-through a recent contribution I'd made to
+<a href="https://github.com/vim-ctrlspace/vim-ctrlspace">Vim-CtrlSpace</a> (a
+workflow-management / fuzzy-finder plugin), which added the ability to
+disable the use of its default files cache. It's my hope that at least some
+intermediate-leveled programmers, who might want to improve the designs of
+their programs, would find this useful. And while I'm aiming to keep the
+implementation details, and even more so the specifics of Vimscript light,
+kindred spirits who enjoy programming in this quirky language might also find
+an interesting nugget or two in here.</p>
 <h2>Problem Context</h2>
-<p>Like most fuzzy finders, CtrlSpace provides a files mode for users to search
-and open files in their projects. To populate the list of files used in this
-mode, upon encountering a new project (marked by version control directories
-such as <code>.git/</code>), CtrlSpace indexes all relevant files and stores their paths
-in a plain textfile. For large projects (the Linux kernel with 70k+ files
-for instance), this indexing process can take a while, but once complete,
-subsequent lookups in this project are effectively instantaneous, since all
-filepaths are now cached.</p>
-<p>While this existing workflow mostly works quit well, especially on mature
-projects where the file structures are fairly static, it does bring with it
-the usual problem of using caches: how and when to invalidate it. Indeed,
-whenever one creates or removes files, or even just switching to branches
-with slightly different sets of files, the cache becomes outdated, and would
-require a manual refresh by reindexing if one wishes to access the newly
-created files (and such) through CtrlSpace. Moreover projects whose file
-structures undergo high flux, and are typically smaller in their sizes, where
-the (re)indexing times are sufficiently fast, an option to disable this files
-cache can offer better convenience.</p>
+<p>Like other fuzzy finders, CtrlSpace has a files mode where users can search
+and open files from their projects. To make this work, upon encountering a new
+project (marked by VCS directories like <code>.git/</code> and <code>.hg/</code>), CtrlSpace will
+index all relevant files through globbing, then store their paths in a plain
+textfile. For large projects (the Linux kernel with 70k+ files for instance),
+this indexing process can take a while; but once complete, subsequent file
+lookups become effectively instantaneous, as all filepaths are cached at that
+point.</p>
+<p>While this workflow mostly works well, especially on mature projects with
+relatively static file structures, it comes with the attendant problem of
+using a cache, i.e. how and when to invalidate it. Indeed, whenever one
+creates or removes a file, or even just switching to a branch with a slightly
+different set of files, the cache becomes outdated, and requires a manual
+refresh by reindexing if one wishes to access the newly created file (and
+such) through CtrlSpace. Therefore having an option to disable the use of this
+textfile cache can be more convenient, especially for projects whose file
+structure experiences high flux, and for those that are smaller in sizes.</p>
 <h2>Preliminary Tries</h2>
-<p>A naive but by no means easy approach would be to write new and separate sets
-of functions and procedures to add the functionality of a disabled cache.
-Where the plugin currently always opens and reads the contents of the cached
-textfile when entering files mode, the new system can be implemented to use a
-number of conditional checks to determine the appropriate set of procedures
-to be executed. I won't bother showing code examples of this approach, as
-it'll mostly consist of a myriad of scattered if-statments and seemingly
-unrelated function calls, which I daresay is probably something most of us
-are familiar with by firsthand experience during our more novice programming
-years. Needless to say, such an approach greatly increases complexity, tight
-coupling and repetitions, easily leading to the dreaded spaghettification of
-the codebase over time. In short, it should never recommended.</p>
-<p>A slightly better approach would be to limit the conditional checks and
-differential behaviors to within the functions implementing the textfile
-cache themselves. Doing so allows the call sites of these functions to remain
-largely unmodified as long as they still return the correct data regardless of
-whether the user chose to enable or disable the cache.</p>
-<p>The original textfile cache loads the list of filepaths using the below
-<code>s:loadFilesFromCache</code> function:</p>
+<p>A naive but by no means easy approach would be to write new procedural logic
+that wires up the plugin's requisite functionalities without executing the
+caching operations. So where it currently always reads the contents of the
+cached textfile when entering the files mode, the new logic might skip this
+step under the right conditions. I won't bother showing code examples for this
+approach, as it'll most likely just amount to a myriad of scattered if-blocks
+executing seemingly unrelated functions, which is a type of programming I'm
+sure most of us have enough firsthand experience with. Needless to say, such
+an approach greatly increases complexity, coupling and repetitions in the
+codebase, which tend to lead to the dreaded spaghettification over time. Not
+recommended.</p>
+<p>A slightly better approach would be to limit the conditional branching to
+within the scopes of the functions implementing the actual textfile cache.
+Doing so allows their call sites to remain unmodified as long as they still
+return the correct data or execute the appropriate procedures.</p>
+<p>Let's see how this can be applied to the function that loads the contents of
+the textfile cache <code>s:loadFilesFromCache</code>:</p>
 <div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! s:loadFilesFromCache</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
     <span class="n">let</span> <span class="s">filename</span> <span class="p">=</span> <span class="n">ctrlspace</span>#<span class="n">util</span>#<span class="n">FilesCache</span><span class="p">()</span>
     <span class="n">if</span> <span class="s">empty(filename)</span> <span class="o">||</span> !<span class="n">filereadable</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
@@ -109,10 +105,10 @@ whether the user chose to enable or disable the cache.</p>
 </pre></div>
 
 
-<p>The above function gets the path to the actual cached file for the current
-project, ensures it's non-empty and is readable, then reads its contents into
-the list <code>s:files</code>.</p>
-<p>To implement the approach described earlier, something along the lines of the
+<p>So <code>s:loadFilesFromCache</code> first gets the path to the textfile cache for the
+current project, ensures it's non-empty and is readable, then reads its
+contents into the script-local list <code>s:files</code>.</p>
+<p>To implement the approach just described, something along the lines of the
 following should work:</p>
 <div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! s:loadFilesFromCache</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
     <span class="n">if</span> <span class="s">s:config.EnableFilesCache</span>
@@ -123,7 +119,7 @@ following should work:</p>
         <span class="n">let</span> <span class="s">s:files</span> <span class="p">=</span> <span class="n">readfile</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
     <span class="n">else</span>
         <span class="s">&quot;</span> <span class="s">...</span>
-        <span class="s">&quot; populate the list s:files w/o reading cache file</span>
+        <span class="s">&quot; store filepaths into s:files w/o reading from the textfile cache</span>
 <span class="s">        &quot;</span> <span class="k">...</span>
     <span class="n">endif</span>
 <span class="s">endfunction</span>
@@ -131,74 +127,71 @@ following should work:</p>
 
 
 <p>The code to be executed when the textfile cache is enabled is the exact same,
-it's just been wrapped in an if-block; while in the else-block, the logic for
-a disabled cache must be added. But as long as the function can still populate
-the list <code>s:files</code> with the project's filepaths, for example by calling the
-file indexing function everytime, then any caller of <code>s:loadFilesFromCache</code>
-should still be satisfied.</p>
-<p>The underlying idea presented by the approach above is actually not far off in
-its intent to that of programming to an interface. The key insight is that if
-the API of the cache system is treated as an unbreakable contract, then its
-functions effectively become black boxes, thereby freeing their callers from
-having to be concerned over the cache's implementation details. Where it falls
-short however, is that it doesn't take the idea far enough.</p>
+just now wrapped in an if-block; while in the else-block, logic for a disabled
+cache can be added. And as long as the function can still populate <code>s:files</code>
+with the project's filepaths, by calling the files indexing function in the
+else-branch for example, then all callers of <code>s:loadFilesFromCache</code> should
+remain satisfied.</p>
+<p>The underlying idea embodied in the approach above isn't far off in spirit to
+that of programming to an interface. The key insight is that if the API of
+the cache system can be made into an unbreakable contract, then its functions
+can be treated as black boxes, thereby freeing their callers from having care
+about the implementation details of the cache. Where this approach fell short
+is that it doesn't take the idea far enough.</p>
 <p>In addition to the function <code>s:loadFilesFromCache</code>, there are
 also <code>s:saveFilesInCache</code>, <code>ctrlspace#files#RefreshFiles</code> and
 <code>ctrlspace#files#CollectFiles</code>; so the same conditional checks and branching
-logic would need to be added to those functions too, which will certainly lead
-to a non-trivial amount of code duplication. Furthermore, if you were to later
-decide to add another entirely different approach to retrieving and handling
-your project files, the internal implementations of these functions would
-quickly become unwieldy, and thus error-prone.</p>
+logic would need to be added into those functions as well. This will
+definitely result in a non-trivial amount of code duplication. Furthermore,
+if you later wanted to add an entirely new system for retrieving and handling
+project files, the internal implementations of these functions can quickly
+become unwieldy, making the code error-prone and brittle.</p>
 <h2>Program to the Interface</h2>
 <h3>Design</h3>
-<p>Astute readers have probably already guessed where this is going. Instead
-of adding the logic for disabling the cache inside existing functions
-implementing the behaviors of the textfile cache, why not aim for even
-greater modularity by partitioning the set of behaviors needed to implement
-a functioning textfile cache and a disabled/null cache into two separate
-components? With the help of some Vimscript-styled OOP, that's exactly what I
-did.</p>
-<p>In effect, both caches are implemented as objects with common attributes such
-as the <code>files</code> list, a couple getter methods, and most importantly the 4 key
-methods that define their shared interface:</p>
+<p>Astute readers have probably already guessed where this is going. Instead of
+adding the logic to disable the cache inside existing functions implementing
+the textfile cache, why not strive for even greater modularity by partitioning
+the set of behaviors needed to implement the functioning textfile cache and
+a disabling null cache into two non-overlapping components? With the help of
+some Vimscript-styled OOP, that's exactly what I did.</p>
+<p>In effect, both cache objects contain common data attributes like a <code>files</code>
+list, and some shared helper methods. But most importantly, they both
+implement 4 key methods that define a uniform interface:</p>
 <ul>
-<li><code>cache.load</code>, drop-in replacement for <code>s:loadFilesFromCache</code></li>
-<li><code>cache.save</code>, drop-in replacement for <code>s:saveFilesInCache</code></li>
-<li><code>cache.refresh</code>, replaces parts of <code>ctrlspace#files#RefreshFiles</code></li>
+<li><code>cache.load</code>, replaces <code>s:loadFilesFromCache</code> entirely</li>
+<li><code>cache.save</code>, replaces <code>s:saveFilesInCache</code> entirely</li>
+<li><code>cache.refresh</code>, replaces <code>ctrlspace#files#RefreshFiles</code> in part</li>
 <li><code>cache.collect</code>, replaces the internals of and is wrapped by <code>ctrlspace#files#CollectFiles</code></li>
 </ul>
-<p>Callers of the original cache's functions will now call the corresponding
-cache object methods, which can either come from the <code>file_cache</code> or the
-<code>null_cache</code> object based on however users chose to configure it. The poing
-is, dependents of the caching system need not nor care to know about how the
-cache produces the files list that they need for their own functionalities.</p>
-<p>This well-defined interface with its clear-cut boundaries also makes both
-maintenace of and extensions to the cache system significantly simpler. When
-it comes to maintenance, as the two caches have zero interactions, bugs that
-occur in one are necessarily contained within its own code. As for extensions,
-I've been meaning to implement a new hybrid cache that'll be able to reap the
-benefits of both existing caches. The idea is for this hybrid cache to behave
-as the <code>null_cache</code> when working on projects containing less than <em>N</em> number
-of files to get the convenience of not needing to manually refresh the cache
-on file structure changes; and as the <code>file_cache</code> for projects over that
-threshold to enjoy the fast filepaths lookups even with tens or even hundreds
-of thousands of files. While making this addition still isn't trivial, the new
-interface-based design makes it easily manageable.</p>
-<p>At this point, there's no more in the way of engineering principles or design
-insights that I can offer you, so you should be fully ready to put the
-idea into practice. Though if you're the type that enjoys delving into the
-nitty-gritty details, the remaining subsections provide glimpses into the
-implementation and usage of this particular interface that we've so far only
-been discussing at a high-level.</p>
+<p>Callers of the original cache system's functions will now call the equivalent
+methods on a cache object, which can either be the <code>file_cache</code> or the
+<code>null_cache</code> depending on how the user has configured it. The point is,
+functions that the cache system neither know nor care to know exactly how it
+works.</p>
+<p>This well-defined interface with its clear-cut boundaries also significantly
+simplifies both the maintenance of and extensions to the cache system. With
+regards to maintenance, since the two caches have zero interactions, bugs
+that occur in one are necessarily contained within its own code. As for
+extensions, I've been meaning to add a new hybrid cache that'll be able to
+reap the benefits of both existing caches. The idea is it can behave like the
+<code>null_cache</code> when working on projects containing less than <em>N</em> files to get
+the convenience of never needing to manually refresh the cache; and as the
+<code>file_cache</code> for projects over that threshold to enjoy fast filepaths lookups
+with tens or even hundreds of thousands of files. Adding this still won't be
+trivial, but the new interface-based design should make it quite manageable.</p>
+<p>This is essentially all the engineering principles I can offer you in this
+article, and you really should be ready to put the theory into practice.
+Though if you're the type to enjoy delving into the nitty-gritty details,
+the remaining subsections do provide some glimpses into the implementation
+and usage of this specific interface that we've only been discussing at a
+high-level so far.</p>
 <h3>Implementation</h3>
-<p>Here I'll only be showcasing 2 of the 4 methods required to implement
-the interface designed earlier, since the other two basically just wrap
-these two while adding some minor functionalities for convenience.
-But if you're interested, the complete implementation of the plugin's
-cache system (and only that) resides in the single source file:
-<a href="https://github.com/vim-ctrlspace/vim-ctrlspace/blob/master/autoload/ctrlspace/cache.vim">cache.vim</a>.</p>
-<p>Comparing the <code>load</code> methods of both caches, we have:</p>
+<p>I'll only showcase 2 of the 4 methods required to implement the interface
+designed above, since the other two are basically just wrappers around these
+that add a couple of minor conveniences. But if you're interested, the
+complete implementation of the plugin's cache system (and only that) resides
+entirely in the source <a href="https://github.com/vim-ctrlspace/vim-ctrlspace/blob/master/autoload/ctrlspace/cache.vim">cache.vim</a>.</p>
+<p>The snippet below shows the <code>load</code> methods for both caches:</p>
 <div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! s:file_cache.load</span><span class="p">()</span><span class="w"> </span><span class="n">dict</span> <span class="n">abort</span>
     <span class="n">let</span> <span class="s">filename</span> <span class="p">=</span> <span class="n">ctrlspace</span>#<span class="n">util</span>#<span class="n">FilesCache</span><span class="p">()</span>
     <span class="n">if</span> <span class="s">empty(filename)</span> <span class="o">||</span> !<span class="n">filereadable</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
@@ -215,15 +208,15 @@ cache system (and only that) resides in the single source file:
 
 <p>The <code>s:file_cache.load</code> method is almost a line for line copy of the
 original <code>s:loadFilesFromCache</code> function, with the only deviation being
-the last line, which reads and assigns the contents in the textfile to the
-instance variable <code>self.files</code> (more on how this works in Vimscript soon),
-instead of the script-scoped global variable <code>s:files</code> in the original
+the last line, which reads and assigns the contents in the textfile to
+the instance variable <code>self.files</code> (more on how this works in Vimscript
+below), instead of the script-local variable <code>s:files</code> in the original
 implementation. The <code>null_cache.load</code> method on the other hand just calls the
 <code>s:glob_project_files</code> helper each time, which is the same function used by
 the <code>file_cache</code> to index and populate its textfile cache as well. In both
-cases, their respective <code>self.files</code> list will contain the filepaths of the
-project, and can be passed to whichever functions or methods that need them.</p>
-<p>Onto the <code>save</code> methods of both, we have:</p>
+cases, their respective <code>self.files</code> attribute will contain the filepaths of
+the project, and can be passed onto whichever functions that need them.</p>
+<p>Comparing both <code>save</code> methods, we have:</p>
 <div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! s:file_cache.save</span><span class="p">()</span><span class="w"> </span><span class="n">dict</span> <span class="n">abort</span>
     <span class="n">let</span> <span class="s">filename</span> <span class="p">=</span> <span class="n">ctrlspace</span>#<span class="n">util</span>#<span class="n">FilesCache</span><span class="p">()</span>
     <span class="n">if</span> <span class="s">empty(filename)</span>
@@ -238,35 +231,38 @@ project, and can be passed to whichever functions or methods that need them.</p>
 </pre></div>
 
 
-<p>I didn't show the implementation of the original <code>s:saveFilesInCache</code> function
-earlier, but <code>s:file_cache.save</code> essentially does the same thing, which is to
-perform the inverse operation as that of <code>s:file_cache.load</code>, i.e. move data
-from <code>self.files</code> into a textfile by writing to it. The <code>s:null_cache.save</code>
-method instead just performs a no-op.</p>
-<h4>OOP in Vimscript</h4>
-<p>For the Vimscript enthusiasts, all methods except for <code>s:null_cache.save</code>
-(since a no-op of course does not need access to the <code>self</code> instance) are
-implemented as Vim's dictionary-functions (see: <code>:help dictionary-function</code>).
-This is made possible by the <code>dict</code> attribute following the function
-definitons, which grants the function access to the local variable <code>self</code> that
-points to the object instance it's invoked from.</p>
-<p>The dot notation used in the function definition line is just syntactic sugar.
-Under-the-hood these objects are simply Vimscript dictionaries, meaning that
-the following is an equally valid way to define the <code>s:null_cache.load</code> method
-for instance:</p>
+<p>I had not shown the implementation of the original <code>s:saveFilesInCache</code>
+function, but <code>s:file_cache.save</code> also just reimplements it and does the exact
+same thing, which is to perform the inverse operation to <code>s:file_cache.load</code>,
+i.e. move the in-memory filepaths data stored in <code>self.files</code> onto disk by
+writing to the textfile. The <code>s:null_cache.save</code> method instead just performs
+a no-op.</p>
+<h5>OOP in Vimscript</h5>
+<p>A brief aside for the Vimscript enthusiasts, all cache methods except
+for <code>s:null_cache.save</code> (because a no-op needs no access to its own data
+of course) are implemented using Vim's dictionary-functions (run <code>:help
+dictionary-function</code> inside Vim). This is facilitated by the <code>dict</code> attribute
+following the function definitions, which grants the function access to the
+local variable <code>self</code> that points to the dictionary instance it's invoked
+from, thereby effectively emulating an object in OOP.</p>
+<p>The dot notation used in the function definition is just syntactic sugar.
+Under-the-hood these objects are still plain Vimscript dictionaries, meaning
+that the following is an equally valid way to define the <code>s:null_cache.load</code>
+method as an example:</p>
 <div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! s:load_by_glob</span><span class="p">()</span><span class="w"> </span><span class="n">dict</span> <span class="n">abort</span>
     <span class="n">let</span> <span class="s">self.files</span> <span class="p">=</span> <span class="n">s</span><span class="p">:</span><span class="n">glob_project_files</span><span class="p">()</span>
 <span class="n">endfunction</span>
 
 <span class="s">let</span> <span class="s">s:null_cache</span> <span class="p">=</span> <span class="p">{</span><span class="s">&#39;files&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s">&#39;load&#39;</span><span class="p">:</span> <span class="k">function</span><span class="p">(</span><span class="s">&quot;s:load_by_glob&quot;</span><span class="p">)}</span>
+&quot; <span class="n">now</span> <span class="n">s</span><span class="p">:</span><span class="n">null_cache</span><span class="p">.</span><span class="n">load</span><span class="p">()</span> <span class="n">works</span> <span class="n">as</span> <span class="n">before</span>
 </pre></div>
 
 
-<p>The method name is a key in the dictionary, with the value being its
-corresponding function reference (see <code>:help Funcref</code>). But with multiple
-functions needed for both caches, it's more succinct to just create these
-dictionaries once as follows, then directly add the required interface methods
-onto them as was done earlier.</p>
+<p>The method name <code>load</code> is a string key in the dictionary, with its
+corresponding value being the function reference (see <code>:help Funcref</code>) that
+actually implements it. With multiple methods needing to be defined on both
+caches however, it's more succinct to just create the dictionary objects once
+like below, then attach their respective methods directly, as shown earlier.</p>
 <div class="highlight"><pre><span></span><span class="n">let</span> <span class="n">s</span><span class="p">:</span><span class="n">file_cache</span> <span class="o">=</span> <span class="err">{}</span>
 
 <span class="n">let</span> <span class="n">s</span><span class="p">:</span><span class="n">null_cache</span> <span class="o">=</span> <span class="err">{}</span>
@@ -275,15 +271,15 @@ onto them as was done earlier.</p>
 
 <p>As a final word on OOP in Vimscript, I'd just like to point out that it more
 so resembles JavaScript's prototype-based OOP, as opposed to the class-based
-system used by most OO-languages. So if you're familiar with the OO-semantics
-of JS, then Vimscript's should feel quite natural (or if you're like me, OOP
-in Vimscript can help you learn JavaScript's instead). For example, to inherit
-from an existing 'prototype' object, you can use Vim's built-in <code>deepcopy</code>
-function to clone the dictionary, then modify the new object instance however
-you like.</p>
+kind used by most OO-languages. So if you're familiar with the OO-semantics
+of JS, then Vimscript's should be very easy to pick-up (or if you're like me,
+writing OOP in Vimscript can help you learn JavaScript's instead). If one
+wants to do prototypal inheritance for example, one can use Vim's built-in
+<code>deepcopy</code> function to clone the an existing dictionary object, then modify
+the new instance however one sees fit.</p>
 <h3>Usage</h3>
-<p>With there being no classes in Vimscript, that means there are no constructors
-either. But we can create a rough equivalent like so:</p>
+<p>No class in Vimscript also means no constructors. But we can ape a rough
+functionally equivalent like so:</p>
 <div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! ctrlspace#cache#Init</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
   <span class="n">let</span> <span class="s">cache</span> <span class="p">=</span> <span class="n">s</span><span class="p">:</span><span class="n">config</span><span class="p">.</span><span class="n">EnableFilesCache</span> ? <span class="n">s</span><span class="p">:</span><span class="n">file_cache</span> <span class="p">:</span> <span class="n">s</span><span class="p">:</span><span class="n">null_cache</span>
   <span class="n">call</span> <span class="s">s:cache_common(cache)</span>
@@ -301,45 +297,42 @@ either. But we can create a rough equivalent like so:</p>
 </pre></div>
 
 
-<p>We select the correct type of cache to use by checking the value of
-<code>s:config.EnableFilesCache</code>, which is actually a Vim global variable (see
-<code>:help g:</code>) that can be set by the user in their <code>.vimrc</code>. Then some
-common data and methods are initialized and attached to <code>cache</code> by calling
-<code>s:cache_common(cache)</code>. And finally, this <code>cache</code> is simply returned.</p>
-<p>Note that the ternary conditional in <code>ctrlspace#cache#Init</code> above is the only
-place in the entire codebase where the check for whether the user enabled or
-disabled the cache is done. This tidyness is often one of the many benefits
-that comes out of a well-designed interface.</p>
-<p>Now inside of the <code>autoload/ctrlspace/files.vim</code> source, where the cache
-object is actually used, all that's needed is:</p>
+<p>Inside the <code>ctrlspace#cache#Init</code> "constructor", the correct type of cache
+is selected by checking the value of <code>s:config.EnableFilesCache</code>, which is
+actually a Vim global variable (see <code>:help g:</code>) that can be set by the user in
+their <code>.vimrc</code>. Note that this is the only place in the entire codebase where
+this conditional check is done. Then some common data initialized and methods
+attached with <code>call s:cache_common(cache)</code>. And finally, this <code>cache</code> object
+is returned.</p>
+<p>Now inside of the
+<a href="https://github.com/vim-ctrlspace/vim-ctrlspace/blob/master/autoload/ctrlspace/files.vim"><code>files.vim</code></a>
+source, where the cache object is actually used, all that's needed is:</p>
 <div class="highlight"><pre><span></span><span class="err">let s:Cache = ctrlspace#cache#Init()</span>
 </pre></div>
 
 
-<p>And once more, functions inside of <code>files.vim</code> are completely agnostic about
-how this cache actually works. All they know is that they can invoke the
-<code>load()</code>, <code>save()</code>, <code>collect()</code> and <code>refresh()</code> methods of the <code>s:Cache</code>
-object wherever those might be needed, and they can count on the correct
-behaviors guaranteed by the cache's interface to take place.</p>
+<p>Once more, functions inside of <code>files.vim</code> are completely agnostic about how
+its cache actually works. All they know is that they can invoke its <code>load()</code>,
+<code>save()</code>, <code>collect()</code> and <code>refresh()</code> methods; and count on these methods to
+behave correctly due to the guarantees of the interface.</p>
 <h2>Beyond OOP-Based Interfaces</h2>
 <p>As mentioned in the introduction, programming to an interface is ultimately
 quite a simple idea, and once internalized, you'd naturally start to think in
 its terms when designing your programs. But despite its conceptual simplicity,
-or perhaps because of it, it is also a very powerful idea. This is because a
-simple idea is usually a generalizable one.</p>
-<p>In this context, it means that although the idea of programming to an
-interface seems to naturally lend itself to the OOP paradigm, to the point that
-<code>interface</code> is even a built-in construct in some languages like
+or perhaps because of it, it's also extremely powerful.</p>
+<p>Simple ideas tend to be generalizable ones. So although programming to an
+interface seems to naturally lend itself to the OOP paradigm, to the point
+that <code>interface</code> is even a built-in construct in some languages like
 <a href="https://docs.oracle.com/javase/tutorial/java/IandI/createinterface.html">Java</a>
 and <a href="https://www.php.net/manual/en/language.oop5.interfaces.php">PHP</a>
-(and alternatively termed as a
+(and alternatively termed a
 <a href="https://en.wikipedia.org/wiki/Protocol_(object-oriented_programming)">protocol</a>
-in others), the fundamental principle behind it is completely independent of
-object-oriented concepts.</p>
-<p>This generalized take on programming to an interface is precisely what I aim
-to demonstrate in a <a href="#">follow-up post</a>. I don't expect it to impart any
-additional insights onto the reader, but there will plenty of gory cool hacks,
-all in Vimscript of coruse!</p>                </article>
+in others), its fundamental principle is orthogonal to object-oriented
+concepts.</p>
+<p>This more general approach on how to program to an interface is precisely what
+I'd like to demonstrate in a <a href="#">follow-up post</a>. I don't expect it'll impart
+any additional insights onto the reader, but there will be plenty of gory cool
+hacks, all in Vimscript of course!</p>                </article>
             </aside><!-- /#featured -->
         <section id="extras" class="body">
                 <div class="blogroll">
