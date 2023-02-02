@@ -314,11 +314,48 @@ lemma](https://en.wikipedia.org/wiki/Handshaking_lemma).
 alt="">
 </figure>
 
-Adding a new type of network is also quite simple, which I shall demonstrate.
+There's also a powerlaw degree distribution network, generated using
+[`powerlaw_cluster_graph`](https://networkx.org/documentation/stable/reference/generated/networkx.generators.random_graphs.powerlaw_cluster_graph.html),
+available. One such instance is this:
 
-* plotting (give example of extending: https://networkx.org/documentation/stable/reference/generated/networkx.generators.community.caveman_graph.html)
+<figure>
+<img src="images/06-4_powerlaw-network.jpeg" style="width:100%;"
+alt="">
+</figure>
 
+Adding a new type of network is also quite simple, which I shall demonstrate
+by example. After adding the new network type to the `docopt` CLI
+description in `gossip/cli.py`, and correctly handling its parameters
+in `gossip/start_network.py`, we'd just need to actually implement in
+`gossip/network.py` the `TuranNetwork` class that will generate the graph
+object:
 
+```python
+class TuranNetwork(GossipNetwork):
+
+    def __init__(self, num_nodes, r_partitions):
+        self.r_parts = r_partitions
+        super().__init__(num_nodes)
+
+    def _get_network_graph(self):
+        return nx.turan_graph(self.num_nodes, self.r_parts)
+```
+
+The above is all it takes to add a new network type to test how it works with
+a gossip protocol. As you can see, it's not doing much more than just calling
+the [built-in Turán graph generator](https://networkx.org/documentation/stable/reference/generated/networkx.generators.classic.turan_graph.html)
+provided by NetworkX.
+
+To make the key properties<sup>†</sup> of the Turán graph more obvious, I
+overrode the `_draw_network` method inherited from the `GossipNetwork` class,
+thereby giving us a plot like the following:
+
+<figure>
+<img src="images/06-5_turan-network.jpeg" style="width:100%;"
+alt="">
+</figure>
+
+You can check out the [full commit here](https://github.com/jyscao/dapper-labs-gossip/commit/375a79dd760b20c95617d90be5cfbb648ab22698).
 
 
 
@@ -336,6 +373,7 @@ Adding a new type of network is also quite simple, which I shall demonstrate.
 
 
 
+<sup>†</sup>
 
 
 
@@ -351,4 +389,8 @@ Adding a new type of network is also quite simple, which I shall demonstrate.
 
 ### Potential TODOs
 
-* check TODO.md
+<sup>†</sup>[Turán graph](https://en.wikipedia.org/wiki/Tur%C3%A1n_graph):
+complete multipartite graph; it is formed by partitioning a set of *n*
+vertices into *r* subsets, with sizes as equal as possible, and then
+connecting two vertices by an edge if and only if they belong to different
+subsets.
