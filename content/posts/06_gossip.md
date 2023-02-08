@@ -1,10 +1,10 @@
-Title: Gossip Network Example
-Date: 2023-01-??
+Title: A Gossip Network Example
+Date: 2023-02-08
 Modified:
 Category: Programming
 Tags: network-programming
-Slug: gossip-network
-Summary: Walkthrough of a gossip protocol network implementation
+Slug: gossip-network-example
+Summary: A walkthrough of how to implement a network connected by a gossip protocol
 
 
 
@@ -17,9 +17,10 @@ alt="representative illustration of a social network">
 
 ## Context
 
-I was given this interesting take-home assignment while interviewing for a
-company last year: implement a simple peer-to-peer network of servers that
-communicate with each other using a gossip protocol.
+I was given this interesting take-home assignment while interviewing
+for a company last year: implement a simple peer-to-peer network
+of servers that communicate with each other using a [gossip
+protocol](https://en.wikipedia.org/wiki/Gossip_protocol).
 
 These were their specified requirements:
 
@@ -59,8 +60,6 @@ feel free to choose between TCP, UDP, HTTP, etc.
 They provided stub classes for the client and the server, and a simple CLI
 UI for interacting with the gossip network, so in effect, the design of the
 system. So all that remained was for me to color in the boxes, so to speak.
-
-Project repository here: https://github.com/jyscao/dapper-labs-gossip
 
 
 
@@ -222,10 +221,17 @@ to handle it:
         self._save_path_and_relay()
 ```
 
-First the `msg_data` is parsed to set the `relay_limit` (more on this later),
-and the message content. Then the current timestamp is appended to the messge
-content to create the unique `msg_id`. Next a metatdata map is initialized for
-the current message with `_init_new_msg_attrs`:
+First the `msg_data` is parsed to set the `relay_limit`[^1], and the message
+content. Then the current timestamp is appended to the messge content to
+create the unique `msg_id`. Next a metatdata map is initialized for the
+current message with `_init_new_msg_attrs`:
+
+[^1]: The `relay_limit`, which defaults to 1, is an important parameter that
+determines the number of times each node broadcasts a received message to all
+of its neighboring nodes. If when executing `send-message` with `--relays=3`
+for example, then each node, instead of receiving a message 3 times (once
+from each of its 3 neighbors), they would receive it 9 times (3 per node × 3
+nodes).
 
 ```python
     def _init_new_msg_attrs(self):
@@ -269,16 +275,23 @@ relayed onwards to its peers. As implemented here:
 
 As you can see, when the message sent to the node is new (command is
 `"/NEW"`), the current node will relay the message to all of its neighbors
-using their clients (`p.send_message(...)`). But if the message was already
-one that has been relayed to it from a previous node, the node will
-exclude the upstream relaying node when proceeding with its own relaying
+using their clients (`p.send_message(...)`)[^2]. But if the message was
+already one that has been relayed to it from a previous node, the node
+will skip the upstream relaying node when proceeding with its own relaying
 responsibilities.
 
-This is basically how the GossipServer works. For how the other commands are
-handled by it, please read the code.
+[^2]: These neighbor nodes, of course would then save the relayed message,
+and in-turn continue the relaying to their own respective neighbors. An
+alternative messaging mechanism would be to check if a node has already
+received the same message from another neighbor; if not save and relay as is
+done here; if so, then skip the processing of this redundant message. Each
+approach has their own pros and cons.
 
 
-### Network Topology & Peers
+### Peers & Network Graphs
+
+The last important piece in the implementation of this gossip network is the
+component responsible for the network topology and thus peers assignment.
 
 You may recall seeing in the `ServerSettings` dataclass shown earlier that
 each node's server contained a `peers` property of type `list[GossipClient]`.
@@ -288,6 +301,8 @@ the case in Python, a mature and robust library exists for one's domain of
 interest, which in our case is [NetworkX](https://networkx.org/): a Python
 package for the creation, manipulation, and study of the structure, dynamics,
 and functions of complex networks.
+
+#### Ciruclar Network
 
 NetworkX provides [generator functions](https://networkx.org/documentation/stable/reference/generators.html)
 for over a hundred types of graphs. It was trivial to use its `cycle_graph`
@@ -299,8 +314,10 @@ node is provided out-of-the-box by its API.
 
 <figure>
 <img src="images/06-2_circular-network.jpeg" style="width:100%;"
-alt="">
+<figcaption style="text-align: center;">Fig. 1: circular network of 16 nodes</figcaption>
 </figure>
+
+#### Random Network
 
 Along the same vein, generating a random network is also straightforward
 by utilizing `random_regular_graph`. In addition to specifying
@@ -311,8 +328,10 @@ lemma](https://en.wikipedia.org/wiki/Handshaking_lemma).
 
 <figure>
 <img src="images/06-3_random-network.jpeg" style="width:100%;"
-alt="">
+<figcaption style="text-align: center;">Fig. 2: random network of 16 nodes with 3 neighbors each</figcaption>
 </figure>
+
+#### Power Law Network
 
 There's also a powerlaw degree distribution network, generated using
 [`powerlaw_cluster_graph`](https://networkx.org/documentation/stable/reference/generated/networkx.generators.random_graphs.powerlaw_cluster_graph.html),
@@ -320,8 +339,10 @@ available. One such instance is this:
 
 <figure>
 <img src="images/06-4_powerlaw-network.jpeg" style="width:100%;"
-alt="">
+<figcaption style="text-align: center;">Fig. 3: power law network of 16 nodes</figcaption>
 </figure>
+
+#### Turán Network
 
 Adding a new type of network is also quite simple, which I shall demonstrate
 by example. After adding the new network type to the `docopt` CLI
@@ -346,51 +367,147 @@ a gossip protocol. As you can see, it's not doing much more than just calling
 the [built-in Turán graph generator](https://networkx.org/documentation/stable/reference/generated/networkx.generators.classic.turan_graph.html)
 provided by NetworkX.
 
-To make the key properties<sup>†</sup> of the Turán graph more obvious, I
-overrode the `_draw_network` method inherited from the `GossipNetwork` class,
-thereby giving us a plot like the following:
+To make the key property[^3] of the Turán graph more evident, I
+also overrode the `_draw_network` method inherited from the `GossipNetwork`
+class, thereby giving us the following representation:
+
+[^3]: [Turán graph](https://en.wikipedia.org/wiki/Tur%C3%A1n_graph): complete
+multipartite graph; it is formed by partitioning a set of *n* vertices into
+*r* subsets, with sizes as equal as possible, and then connecting two vertices
+by an edge if and only if they belong to different subsets.
 
 <figure>
 <img src="images/06-5_turan-network.jpeg" style="width:100%;"
-alt="">
+<figcaption style="text-align: center;">Fig. 4: Turán network of 16 nodes with 4 partitions</figcaption>
 </figure>
 
-You can check out the [full commit here](https://github.com/jyscao/dapper-labs-gossip/commit/375a79dd760b20c95617d90be5cfbb648ab22698).
+You can review the full commit adding the Turán graph
+[here](https://github.com/jyscao/dapper-labs-gossip/commit/375a79dd760b20c95617d90be5cfbb648ab22698).
 
 
 
-## Considerations
+## Demonstration
 
-* number of relays -> requires tracking messages by ID
-* alternative messaging mechanism -> check if message has already been received by node, if so, skip and just relay
-* display delivery paths of messages
-* talk about Tribler: https://github.com/Tribler/tribler
+With the hardwork out of the way, let us now take a look at what the (more or
+less) finished product can do.
+
+Using the concrete example of the [random network](#random-network) shown in
+Fig. 2 above, let's first send a message to node 1:
+
+```bash
+$ poetry run gossip send-message 1 "Hello World"
+Message sent to Gossip-Node-1
+```
+
+Then let's get the messages of node 10:
+
+```bash
+$ poetry run gossip get-messages 10
+Fetched all messages from Gossip-Node-10; showing all path(s):
+
+• Hello World
+  ↳ 1 ➜ 10
+  ↳ 1 ➜ 14 ➜ 12 ➜ 4 ➜ 9 ➜ 10
+  ↳ 1 ➜ 14 ➜ 12 ➜ 4 ➜ 16 ➜ 8 ➜ 10
+```
+
+By default, the command will display all paths taken by the message to reach
+the node in question, of which there are 3 here, 1 from each neighbor. We can
+also tell it to display the shortest, longest, & shortest + longest paths
+using the `-p`, `-p` & `-ppp` flags respectively. For example on node 6:
+
+```bash
+$ poetry run gossip get-messages 6 -pp
+Fetched all messages from Gossip-Node-6; showing shortest & longest path(s):
+
+• Hello World
+  ↳ 1 ➜ 11 ➜ 6
+  ↳ 1 ➜ 10 ➜ 8 ➜ 2 ➜ 7 ➜ 6
+```
+
+The `get-messages` command can optionally return only read or unread messages;
+a message on node *x* becomes "read" once it has been retrieved with `poetry
+run gossip get-messages x`. Additionally, you can pass it the repeatable `-t`
+flag to view the timestamp of messages with varying levels of detail.
+
+Next let's list the peers of node 4:
+
+```bash
+$ poetry run gossip list-peers 4
+Gossip-Node-4 has peers:
+* Gossip-Node-9 (127.0.0.1:7009)
+* Gossip-Node-12 (127.0.0.1:7012)
+* Gossip-Node-16 (127.0.0.1:7016)
+```
+
+Followed by removing one of its peers, say node 12:
+
+```bash
+poetry run gossip remove-node 12
+Gossip-Node-12 removed
+```
+
+Now we see node 4 only has 2 peers[^4]:
+
+```bash
+$ poetry run gossip list-peers 4
+Gossip-Node-4 has peers:
+* Gossip-Node-9 (127.0.0.1:7009)
+* Gossip-Node-16 (127.0.0.1:7016)
+```
+
+[^4]: Currently, once a node has been removed from the network, its erstwhile
+neighbors simply have their degree of connectedness reduced by 1. An
+improvement would be to reconfigure the network, where it's possible without
+violating the handshaking lemma, to connect nodes that have lost this
+neighbor.
+
+And if we send another message to the network:
+
+```bash
+$ poetry run gossip send-message 1 "Goodbye"
+Message sent to Gossip-Node-1
+```
+
+Then check the message box of node 4:
+
+```bash
+$ poetry run gossip get-messages 4
+Fetched all messages from Gossip-Node-4; showing all path(s):
+
+• Hello World
+  ↳ 1 ➜ 14 ➜ 12 ➜ 4
+  ↳ 1 ➜ 10 ➜ 9 ➜ 4
+  ↳ 1 ➜ 11 ➜ 6 ➜ 7 ➜ 16 ➜ 4
+
+• Goodbye
+  ↳ 1 ➜ 10 ➜ 9 ➜ 4
+  ↳ 1 ➜ 11 ➜ 6 ➜ 7 ➜ 16 ➜ 4
+```
+
+We can see the path that allowed the first message "Hello World" to reach
+node 4 from node 12, is no longer available when we sent the second message
+"Goodbye". Though of course, due to the inherent redundancy of the gossip
+network, the message still reached its destination, which is the entire point.
 
 
 
+## Final Words
 
+When working with decentralized networks, gossip as a family of protocols
+can certainly be a valuable tool to achieve certain desired behaviors.
+One example of a real-world production-ready software that uses gossip is
+[Tribler](https://www.tribler.org/), a decentralized anonymous P2P BitTorrent
+client. Gossip is at the core of how Tribler users discover available and
+high-quality "channels", which are collections of shareable content along with
+their metadata.
 
+Although my toy example is far from being production-ready for any practical
+utilities, I do hope the walkthrough provided an adequate high-level
+understanding of how pieces of such a system can be put together, as well as
+useful implemntation details showcasing how the `send-message` command is both
+initiated and handled.
 
-
-
-<sup>†</sup>
-
-
-
-
-## Extras & Additions
-
-### Implemented (briefly mention this, and ask reader to just refer to code)
-
-* list-peers
-* only show shortest or longest path taken by message
-* set number of nodes & connectedness
-* display arrival time of messages
-
-### Potential TODOs
-
-<sup>†</sup>[Turán graph](https://en.wikipedia.org/wiki/Tur%C3%A1n_graph):
-complete multipartite graph; it is formed by partitioning a set of *n*
-vertices into *r* subsets, with sizes as equal as possible, and then
-connecting two vertices by an edge if and only if they belong to different
-subsets.
+Should you be interested in playing around with this example
+yourself, you may find the full project at [this GitHub
+repo](https://github.com/jyscao/dapper-labs-gossip).
