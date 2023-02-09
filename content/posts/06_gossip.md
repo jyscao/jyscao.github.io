@@ -494,13 +494,18 @@ network, the message still reached its destination, which is the entire point.
 
 ## Final Words
 
-When working with decentralized networks, gossip as a family of protocols
-can certainly be a valuable tool to achieve certain desired behaviors.
-One example of a real-world production-ready software that uses gossip is
-[Tribler](https://www.tribler.org/), a decentralized anonymous P2P BitTorrent
-client. Gossip is at the core of how Tribler users discover available and
-high-quality "channels", which are collections of shareable content along with
-their metadata.
+When working with decentralized networks, gossip as a family of protocols can
+certainly be a valuable tool to achieve certain desired behaviors. Here are a
+couple real-world production-ready examples:
+
+* [Serf](https://www.serf.io/), the service orchestration and management tool
+from HashiCorp, which uses an efficient and lightweight gossip protocol [to
+broadcast messages to the cluster](https://www.serf.io/docs/internals/gossip.html)
+
+* [Tribler](https://www.tribler.org/), a decentralized anonymous P2P
+BitTorrent client, which uses gossip to enable Tribler users [to discover
+available and high-quality "channels"](https://github.com/Tribler/tribler/blob/main/doc/metadata_store/channels_architecture.rst)
+(collections of shareable content along with their metadata)
 
 Although my toy example is far from being production-ready for any practical
 utilities, I do hope the walkthrough provided an adequate high-level
