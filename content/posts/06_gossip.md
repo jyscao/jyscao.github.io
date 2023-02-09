@@ -4,12 +4,12 @@ Modified:
 Category: Programming
 Tags: network-programming
 Slug: gossip-network-example
-Summary: A walkthrough of how to implement a network connected by a gossip protocol
+Summary: Walkthrough of how to implement a network connected by a gossip protocol
 
 
 
 <figure>
-<img src="images/06-1_social-network.jpeg" style="width:100%;"
+<img src="images/06-1_gossip-network.jpeg" style="width:100%;"
 alt="representative illustration of a social network">
 </figure>
 
@@ -17,10 +17,9 @@ alt="representative illustration of a social network">
 
 ## Context
 
-I was given this interesting take-home assignment while interviewing
-for a company last year: implement a simple peer-to-peer network
-of servers that communicate with each other using a [gossip
-protocol](https://en.wikipedia.org/wiki/Gossip_protocol).
+I was given this interesting take-home assignment while interviewing for a
+company last year: implement a simple peer-to-peer network of servers that
+communicate with each other using a [gossip protocol](https://en.wikipedia.org/wiki/Gossip_protocol).
 
 These were their specified requirements:
 
@@ -82,7 +81,8 @@ ready to test out the skeleton gossip network using the provided commands:
 Unfortunately, I ran into another roadblock here in the form of getting the
 nodes running as individual Docker containers to communicate with each other.
 Being the Docker (and containers in general) hater that I am, I decided to
-[rip out the entire Docker infrastructure and replace it with the simple to use `multiprocessing` module from Python's standard library](https://github.com/jyscao/dapper-labs-gossip/commit/0b7d19acd8519e3282551e13d86365e024632c4f).
+[rip out the entire Docker infrastructure and replace it with the simple to
+use `multiprocessing` module from Python's standard library](https://github.com/jyscao/dapper-labs-gossip/commit/0b7d19acd8519e3282551e13d86365e024632c4f).
 
 Once that was all in place, I was finally ready to start implementing the
 client and the server.
@@ -319,12 +319,11 @@ node is provided out-of-the-box by its API.
 
 #### Random Network
 
-Along the same vein, generating a random network is also straightforward
-by utilizing `random_regular_graph`. In addition to specifying
-the number of nodes *n*, we must also pass the degree *d* of each
-node, which defaults to 3, as specified in the original problem
-requirement. Note that *n×d* must be even, by the [handshaking
-lemma](https://en.wikipedia.org/wiki/Handshaking_lemma).
+Along the same vein, generating a random network is also straightforward by
+utilizing `random_regular_graph`. In addition to specifying the number of
+nodes *n*, we must also pass the degree *d* of each node, which defaults to
+3, as specified in the original problem requirement. Note that *n×d* must be
+even, by the [handshaking lemma](https://en.wikipedia.org/wiki/Handshaking_lemma).
 
 <figure>
 <img src="images/06-3_random-network.jpeg" style="width:100%;"
@@ -367,9 +366,9 @@ a gossip protocol. As you can see, it's not doing much more than just calling
 the [built-in Turán graph generator](https://networkx.org/documentation/stable/reference/generated/networkx.generators.classic.turan_graph.html)
 provided by NetworkX.
 
-To make the key property[^3] of the Turán graph more evident, I
-also overrode the `_draw_network` method inherited from the `GossipNetwork`
-class, thereby giving us the following representation:
+To make the key property[^3] of the Turán graph more evident, I also overrode
+the `_draw_network` method inherited from the `GossipNetwork` class, thereby
+giving us the following representation:
 
 [^3]: [Turán graph](https://en.wikipedia.org/wiki/Tur%C3%A1n_graph): complete
 multipartite graph; it is formed by partitioning a set of *n* vertices into
@@ -381,8 +380,7 @@ by an edge if and only if they belong to different subsets.
 <figcaption style="text-align: center;">Fig. 4: Turán network of 16 nodes with 4 partitions</figcaption>
 </figure>
 
-You can review the full commit adding the Turán graph
-[here](https://github.com/jyscao/dapper-labs-gossip/commit/375a79dd760b20c95617d90be5cfbb648ab22698).
+You can review the full commit adding the Turán graph [here](https://github.com/jyscao/dapper-labs-gossip/commit/375a79dd760b20c95617d90be5cfbb648ab22698).
 
 
 
@@ -507,12 +505,11 @@ BitTorrent client, which uses gossip to enable Tribler users [to discover
 available and high-quality "channels"](https://github.com/Tribler/tribler/blob/main/doc/metadata_store/channels_architecture.rst)
 (collections of shareable content along with their metadata)
 
-Although my toy example is far from being production-ready for any practical
+Although this toy project is far from being production-ready for any practical
 utilities, I do hope the walkthrough provided an adequate high-level
 understanding of how pieces of such a system can be put together, as well as
-useful implemntation details showcasing how the `send-message` command is both
-initiated and handled.
+useful implemntation details with the `send-message` example showcasing how
+the command is both initiated and handled.
 
-Should you be interested in playing around with this example
-yourself, you may find the full project at [this GitHub
-repo](https://github.com/jyscao/dapper-labs-gossip).
+Should you be interested in playing around with this example yourself, you may
+find the full project at [this GitHub repo](https://github.com/jyscao/gossip-network-example).
