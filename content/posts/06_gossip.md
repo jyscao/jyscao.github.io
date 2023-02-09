@@ -1,10 +1,10 @@
-Title: A Gossip Network Example
-Date: 2023-02-08
-Modified:
+Title: Gossip Network Example
+Date: 2023-02-09
+Modified: 2023-02-09
 Category: Programming
-Tags: network-programming
+Tags: python, network-programming
 Slug: gossip-network-example
-Summary: Walkthrough of how to implement a network connected by a gossip protocol
+Summary: How to implement a P2P-network communicating over a gossip protocol
 
 
 
@@ -313,7 +313,7 @@ nodes), useful operations such as retrieving the neighbors/peers of any given
 node is provided out-of-the-box by its API.
 
 <figure>
-<img src="images/06-2_circular-network.jpeg" style="width:100%;"
+<img src="images/06-2_circular-network.jpeg" style="width:100%;">
 <figcaption style="text-align: center;">Fig. 1: circular network of 16 nodes</figcaption>
 </figure>
 
@@ -326,7 +326,7 @@ nodes *n*, we must also pass the degree *d* of each node, which defaults to
 even, by the [handshaking lemma](https://en.wikipedia.org/wiki/Handshaking_lemma).
 
 <figure>
-<img src="images/06-3_random-network.jpeg" style="width:100%;"
+<img src="images/06-3_random-network.jpeg" style="width:100%;">
 <figcaption style="text-align: center;">Fig. 2: random network of 16 nodes with 3 neighbors each</figcaption>
 </figure>
 
@@ -337,7 +337,7 @@ There's also a powerlaw degree distribution network, generated using
 available. One such instance is this:
 
 <figure>
-<img src="images/06-4_powerlaw-network.jpeg" style="width:100%;"
+<img src="images/06-4_powerlaw-network.jpeg" style="width:100%;">
 <figcaption style="text-align: center;">Fig. 3: power law network of 16 nodes</figcaption>
 </figure>
 
@@ -376,7 +376,7 @@ multipartite graph; it is formed by partitioning a set of *n* vertices into
 by an edge if and only if they belong to different subsets.
 
 <figure>
-<img src="images/06-5_turan-network.jpeg" style="width:100%;"
+<img src="images/06-5_turan-network.jpeg" style="width:100%;">
 <figcaption style="text-align: center;">Fig. 4: Turán network of 16 nodes with 4 partitions</figcaption>
 </figure>
 
