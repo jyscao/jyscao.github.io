@@ -317,7 +317,7 @@ Using NetworkX's `cycle_graph` generator, it was trivial to replace the stub
 graph generator provided in the original project scaffold.
 
 <figure>
-<img src="images/06-2_circular-network.jpeg" style="width:70%;">
+<img src="images/06-2_circular-network.jpeg" style="width:70%;" class="center">
 <figcaption style="text-align: center;">Fig. 1: circular network of 16 nodes</figcaption>
 </figure>
 
@@ -330,7 +330,7 @@ in the problem requirements). Note that *n×d* must be an even integer, by the
 [handshaking lemma](https://en.wikipedia.org/wiki/Handshaking_lemma).
 
 <figure>
-<img src="images/06-3_random-network.jpeg" style="width:70%;">
+<img src="images/06-3_random-network.jpeg" style="width:70%;" class="center">
 <figcaption style="text-align: center;">Fig. 2: random network of 16 nodes with 3 neighbors each</figcaption>
 </figure>
 
@@ -341,7 +341,7 @@ a power law degree distribution generator. Here is an example of such a
 network:
 
 <figure>
-<img src="images/06-4_powerlaw-network.jpeg" style="width:70%;">
+<img src="images/06-4_powerlaw-network.jpeg" style="width:70%;" class="center">
 <figcaption style="text-align: center;">Fig. 3: power law network of 16 nodes</figcaption>
 </figure>
 
@@ -381,7 +381,7 @@ multipartite graph; it is formed by partitioning a set of *n* vertices into
 by an edge if and only if they belong to different subsets.
 
 <figure>
-<img src="images/06-5_turan-network.jpeg" style="width:70%;">
+<img src="images/06-5_turan-network.jpeg" style="width:70%;" class="center">
 <figcaption style="text-align: center;">Fig. 4: Turán network of 16 nodes with 4 partitions</figcaption>
 </figure>
 
@@ -521,3 +521,17 @@ commands are both initiated and handled.
 
 If you wish to play around with this example, you can find the full project
 code on my GitHub [here](https://github.com/jyscao/gossip-network-example).
+
+
+
+
+
+<!-- used by the graph figures in the article -->
+<style>
+.center {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 50%;
+}
+</style>
