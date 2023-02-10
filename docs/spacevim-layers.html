@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
         <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="generator" content="Pelican" />
         <title>SpaceVim: Layers Under-the-Hood</title>
         <link rel="stylesheet" href="/theme/css/main.css" />
@@ -145,33 +146,31 @@ new layer under <code>../layers/</code>. So for our example, that would be
 <li><code>SpaceVim#layers#ctrlspace#set_variable</code> for retrieving layer-local options set by the user</li>
 <li><code>SpaceVim#layers#ctrlspace#config</code> for configuring key aspects of the plugin and layer</li>
 </ul>
-<div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! SpaceVim#layers#ctrlspace#plugins</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
-    <span class="s">&quot; add plugins for layer</span>
+<div class="highlight"><pre><span></span><code><span class="k">function</span><span class="nf">! SpaceVim#layers#ctrlspace#plugins</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
+<span class="w">    </span><span class="s">&quot; add plugins for layer</span>
 <span class="s">endfunction</span>
 
 <span class="s">function! SpaceVim#layers#ctrlspace#set_variable(var) abort</span>
-<span class="s">    &quot;</span> <span class="n">set</span> <span class="n">options</span> <span class="n">local</span> <span class="n">to</span> <span class="n">layer</span>
+<span class="s">    &quot;</span><span class="w"> </span><span class="nb">set</span><span class="w"> </span><span class="n">options</span><span class="w"> </span><span class="n">local</span><span class="w"> </span><span class="n">to</span><span class="w"> </span><span class="n">layer</span>
 <span class="n">endfunction</span>
 
-<span class="s">function!</span> <span class="s">SpaceVim#layers#ctrlspace#config()</span> <span class="s">abort</span>
-  <span class="s">&quot; configure plugins</span>
-<span class="s">  &quot;</span> <span class="k">...</span>
-  <span class="s">&quot; add keybindings to SpaceVim</span>
-<span class="s">  &quot;</span> <span class="k">...</span>
+<span class="s">function!</span><span class="w"> </span><span class="s">SpaceVim#layers#ctrlspace#config()</span><span class="w"> </span><span class="s">abort</span>
+<span class="w">  </span><span class="s">&quot; configure plugins</span>
+<span class="s">  &quot;</span><span class="w"> </span><span class="k">...</span>
+<span class="w">  </span><span class="s">&quot; add keybindings to SpaceVim</span>
+<span class="s">  &quot;</span><span class="w"> </span><span class="k">...</span>
 <span class="n">endfunction</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>And now we shall implement them one by one.</p>
 <p><strong>3. Specify layer plugins</strong></p>
 <p>The CtrlSpace layer contains the single plugin, "vim-ctrlspace", so we
 can directly return it.</p>
-<div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! SpaceVim#layers#ctrlspace#plugins</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
-    <span class="n">return</span> <span class="s">[</span> <span class="s">[&#39;vim-ctrlspace/vim-ctrlspace&#39;,</span> <span class="s">{&#39;merged&#39;:</span> <span class="s">0}],</span> <span class="s">]</span>
-    &quot; <span class="s">&#39;merged&#39;</span> <span class="n">is</span> <span class="n">an</span> <span class="n">optimization</span> <span class="n">flag</span> <span class="n">used</span> <span class="n">by</span> <span class="n">the</span> <span class="n">plugin</span> <span class="n">manager</span>
+<div class="highlight"><pre><span></span><code><span class="k">function</span><span class="nf">! SpaceVim#layers#ctrlspace#plugins</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="p">[</span><span class="s">&#39;vim-ctrlspace/vim-ctrlspace&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="s">&#39;merged&#39;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">}],</span><span class="w"> </span><span class="p">]</span>
+<span class="w">    </span>&quot;<span class="w"> </span><span class="s">&#39;merged&#39;</span><span class="w"> </span><span class="n">is</span><span class="w"> </span><span class="n">an</span><span class="w"> </span><span class="n">optimization</span><span class="w"> </span><span class="nb">flag</span><span class="w"> </span><span class="n">used</span><span class="w"> </span><span class="n">by</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">plugin</span><span class="w"> </span><span class="n">manager</span>
 <span class="n">endfunction</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>For layers with more than one plugin, you'd add all of them to the
 return list. Note: the second element in each plugin-list is a table
@@ -184,14 +183,13 @@ Because for many users <code>&lt;C-Space&gt;</code> may already be occupied, esp
 if they hail from a non-English speaking part of the world, this
 option allows them to change their <code>home-mapping-key</code> to something more
 suitable, such as <code>&lt;C-p&gt;</code>.</p>
-<div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! SpaceVim#layers#ctrlspace#set_variable</span><span class="p">(</span>var<span class="p">)</span><span class="w"> </span><span class="n">abort</span>
-  <span class="n">let</span> <span class="s">s:home_mapping_key</span> <span class="p">=</span> <span class="n">get</span><span class="p">(</span><span class="n">a</span><span class="p">:</span><span class="n">var</span><span class="p">,</span> <span class="s">&#39;home-mapping-key&#39;</span><span class="p">,</span> <span class="n">s</span><span class="p">:</span><span class="n">home_mapping_key</span><span class="p">)</span>
-  <span class="s">&quot; ...</span>
-<span class="s">  &quot;</span> <span class="n">other</span> <span class="n">layer</span> <span class="n">options</span>
-  &quot; <span class="k">...</span>
+<div class="highlight"><pre><span></span><code><span class="k">function</span><span class="nf">! SpaceVim#layers#ctrlspace#set_variable</span><span class="p">(</span>var<span class="p">)</span><span class="w"> </span><span class="n">abort</span>
+<span class="w">  </span><span class="n">let</span><span class="w"> </span><span class="n">s</span><span class="p">:</span><span class="n">home_mapping_key</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">get</span><span class="p">(</span><span class="n">a</span><span class="p">:</span><span class="nb">var</span><span class="p">,</span><span class="w"> </span><span class="s">&#39;home-mapping-key&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">s</span><span class="p">:</span><span class="n">home_mapping_key</span><span class="p">)</span>
+<span class="w">  </span><span class="s">&quot; ...</span>
+<span class="s">  &quot;</span><span class="w"> </span><span class="n">other</span><span class="w"> </span><span class="n">layer</span><span class="w"> </span><span class="n">options</span>
+<span class="w">  </span>&quot;<span class="w"> </span><span class="k">...</span>
 <span class="n">endfunction</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>The <code>get</code> function looks for a string name matching <code>home-mapping-key</code>
 (2<sup>nd</sup> arg) in the list of layer-local variables
@@ -204,14 +202,13 @@ initialized default value passed as the 3<sup>rd</sup> argument to
 <p><em>a) main plugin settings</em></p>
 <p>With the plugin made available, and user configurations parsed, the
 plugin can finally be appropriately configured.</p>
-<div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! SpaceVim#layers#ctrlspace#config</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
-  <span class="n">let</span> <span class="s">g:CtrlSpaceDefaultMappingKey</span> <span class="p">=</span> <span class="n">s</span><span class="p">:</span><span class="n">home_mapping_key</span>
-  <span class="s">&quot; ...</span>
-<span class="s">  &quot;</span> <span class="n">configuration</span> <span class="n">of</span> <span class="n">other</span> <span class="n">plugin</span> <span class="n">settings</span>
-  &quot; <span class="k">...</span>
+<div class="highlight"><pre><span></span><code><span class="k">function</span><span class="nf">! SpaceVim#layers#ctrlspace#config</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
+<span class="w">  </span><span class="n">let</span><span class="w"> </span><span class="n">g</span><span class="p">:</span><span class="n">CtrlSpaceDefaultMappingKey</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">s</span><span class="p">:</span><span class="n">home_mapping_key</span>
+<span class="w">  </span><span class="s">&quot; ...</span>
+<span class="s">  &quot;</span><span class="w"> </span><span class="n">configuration</span><span class="w"> </span><span class="n">of</span><span class="w"> </span><span class="n">other</span><span class="w"> </span><span class="n">plugin</span><span class="w"> </span><span class="nb">settings</span>
+<span class="w">  </span>&quot;<span class="w"> </span><span class="k">...</span>
 <span class="n">endfunction</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>Often times, layer options are made available to user to begin with due
 to the existence of the corresponding settings in your layer plugin(s)
@@ -220,24 +217,23 @@ above.</p>
 <p><em>b) other plugin settings</em></p>
 <p>An important setting for CtrlSpace is its glob command, which determines
 how it collects and populates the files list for new projects.</p>
-<div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! SpaceVim#layers#ctrlspace#config</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
-  <span class="s">&quot; ...</span>
-<span class="s">  &quot;</span> <span class="k">...</span>
+<div class="highlight"><pre><span></span><code><span class="k">function</span><span class="nf">! SpaceVim#layers#ctrlspace#config</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
+<span class="w">  </span><span class="s">&quot; ...</span>
+<span class="s">  &quot;</span><span class="w"> </span><span class="k">...</span>
 
-  <span class="n">if</span> <span class="s">executable(&quot;rg&quot;)</span>
-    <span class="n">let</span> <span class="s">g:CtrlSpaceGlobCommand</span> <span class="p">=</span> <span class="s">&#39;rg --color=never --files&#39;</span>
-  <span class="n">elseif</span> <span class="s">executable(&quot;ag&quot;)</span>
-    <span class="n">let</span> <span class="s">g:CtrlSpaceGlobCommand</span> <span class="p">=</span> <span class="s">&#39;ag -l --nocolor -g &quot;&quot;&#39;</span>
-  <span class="n">else</span>
-    <span class="s">let</span> <span class="s">g:CtrlSpaceGlobCommand</span> <span class="p">=</span> <span class="s">&#39;&#39;</span>
-    <span class="n">call</span> <span class="s">SpaceVim#logger#info(&#39;CtrlSpace: **an appropriate warning message**&#39;)</span>
-  <span class="n">endif</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="n">executable</span><span class="p">(</span><span class="s">&quot;rg&quot;</span><span class="p">)</span>
+<span class="w">    </span><span class="n">let</span><span class="w"> </span><span class="n">g</span><span class="p">:</span><span class="n">CtrlSpaceGlobCommand</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;rg --color=never --files&#39;</span>
+<span class="w">  </span><span class="k">elseif</span><span class="w"> </span><span class="n">executable</span><span class="p">(</span><span class="s">&quot;ag&quot;</span><span class="p">)</span>
+<span class="w">    </span><span class="n">let</span><span class="w"> </span><span class="n">g</span><span class="p">:</span><span class="n">CtrlSpaceGlobCommand</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;ag -l --nocolor -g &quot;&quot;&#39;</span>
+<span class="w">  </span><span class="k">else</span>
+<span class="w">    </span><span class="n">let</span><span class="w"> </span><span class="n">g</span><span class="p">:</span><span class="n">CtrlSpaceGlobCommand</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;&#39;</span>
+<span class="w">    </span><span class="n">call</span><span class="w"> </span><span class="n">SpaceVim</span>#<span class="n">logger</span>#<span class="n">info</span><span class="p">(</span><span class="s">&#39;CtrlSpace: **an appropriate warning message**&#39;</span><span class="p">)</span>
+<span class="w">  </span><span class="n">endif</span>
 
-  <span class="s">&quot;</span> <span class="s">...</span>
-  &quot; <span class="k">...</span>
+<span class="w">  </span><span class="s">&quot; ...</span>
+<span class="s">  &quot;</span><span class="w"> </span><span class="k">...</span>
 <span class="n">endfunction</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>The above snippet also conveniently showcases SpaceVim's logging API,
 which has 3 levels: <code>info</code>, <code>warn</code> and <code>error</code>. The runtime log (shown
@@ -251,19 +247,18 @@ L</code> keybinding.</p>
 <p><em>c) SpaceVim keybindings</em></p>
 <p>Here's also a good place to configure keybindings to integrate your
 plugins' functionalities into SpaceVim. </p>
-<div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! SpaceVim#layers#ctrlspace#config</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
-  <span class="s">&quot; ...</span>
-<span class="s">  &quot;</span> <span class="k">...</span>
+<div class="highlight"><pre><span></span><code><span class="k">function</span><span class="nf">! SpaceVim#layers#ctrlspace#config</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
+<span class="w">  </span><span class="s">&quot; ...</span>
+<span class="s">  &quot;</span><span class="w"> </span><span class="k">...</span>
 
-  <span class="n">call</span> <span class="s">SpaceVim#mapping#space#def(&#39;nnoremap&#39;,</span> <span class="s">[&#39;b&#39;,</span> <span class="s">&#39;b&#39;],</span> <span class="s">&#39;CtrlSpace A&#39;,</span> <span class="s">&#39;CtrlSpace: search all buffers&#39;,</span> <span class="s">1)</span>
-  <span class="n">call</span> <span class="s">SpaceVim#mapping#space#def(&#39;nnoremap&#39;,</span> <span class="s">[&#39;p&#39;,</span> <span class="s">&#39;f&#39;],</span> <span class="s">&#39;CtrlSpace O&#39;,</span> <span class="s">&#39;CtrlSpace search project files&#39;,</span> <span class="s">1)</span>
-  <span class="n">call</span> <span class="s">SpaceVim#mapping#space#def(&#39;nnoremap&#39;,</span> <span class="s">[&#39;p&#39;,</span> <span class="s">&#39;b&#39;],</span> <span class="s">&#39;CtrlSpace B&#39;,</span> <span class="s">&#39;CtrlSpace: search bookmarks&#39;,</span> <span class="s">1)</span>
-  <span class="s">&quot; ...</span>
-<span class="s">  &quot;</span> <span class="n">more</span> <span class="n">keybindings</span>
-  &quot; <span class="k">...</span>
+<span class="w">  </span><span class="n">call</span><span class="w"> </span><span class="n">SpaceVim</span>#<span class="n">mapping</span>#<span class="n">space</span>#<span class="n">def</span><span class="p">(</span><span class="s">&#39;nnoremap&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="s">&#39;b&#39;</span><span class="p">,</span><span class="w"> </span><span class="s">&#39;b&#39;</span><span class="p">],</span><span class="w"> </span><span class="s">&#39;CtrlSpace A&#39;</span><span class="p">,</span><span class="w"> </span><span class="s">&#39;CtrlSpace: search all buffers&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span>
+<span class="w">  </span><span class="n">call</span><span class="w"> </span><span class="n">SpaceVim</span>#<span class="n">mapping</span>#<span class="n">space</span>#<span class="n">def</span><span class="p">(</span><span class="s">&#39;nnoremap&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="s">&#39;p&#39;</span><span class="p">,</span><span class="w"> </span><span class="s">&#39;f&#39;</span><span class="p">],</span><span class="w"> </span><span class="s">&#39;CtrlSpace O&#39;</span><span class="p">,</span><span class="w"> </span><span class="s">&#39;CtrlSpace search project files&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span>
+<span class="w">  </span><span class="n">call</span><span class="w"> </span><span class="n">SpaceVim</span>#<span class="n">mapping</span>#<span class="n">space</span>#<span class="n">def</span><span class="p">(</span><span class="s">&#39;nnoremap&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="s">&#39;p&#39;</span><span class="p">,</span><span class="w"> </span><span class="s">&#39;b&#39;</span><span class="p">],</span><span class="w"> </span><span class="s">&#39;CtrlSpace B&#39;</span><span class="p">,</span><span class="w"> </span><span class="s">&#39;CtrlSpace: search bookmarks&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span>
+<span class="w">  </span><span class="s">&quot; ...</span>
+<span class="s">  &quot;</span><span class="w"> </span><span class="nb">more</span><span class="w"> </span><span class="n">keybindings</span>
+<span class="w">  </span>&quot;<span class="w"> </span><span class="k">...</span>
 <span class="n">endfunction</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>To define a <code>SPC</code>-prefixed keybinding for some functionality of your
 layer, <code>SpaceVim#mapping#space#def</code> is used. This function takes 5
@@ -286,12 +281,11 @@ For my example, the name of the layer to be enabled is of course
 <code>"ctrlspace"</code>. I change the main mapping key for invoking the plugin
 from its default of <code>&lt;C-Space&gt;</code> to <code>&lt;C-p&gt;</code>, and also enable the SpaceVim
 styled keybindings, some of which you saw defined above.</p>
-<div class="highlight"><pre><span></span><span class="k">[[layers]]</span>
- <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;ctrlspace&quot;</span>
- <span class="n">home-mapping-key</span> <span class="o">=</span> <span class="s">&quot;&lt;C-p&gt;&quot;</span>
- <span class="n">enable-spacevim-styled-keys</span> <span class="o">=</span> <span class="kc">true</span>
-</pre></div>
-
+<div class="highlight"><pre><span></span><code><span class="k">[[layers]]</span>
+<span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;ctrlspace&quot;</span>
+<span class="w"> </span><span class="n">home-mapping-key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;&lt;C-p&gt;&quot;</span>
+<span class="w"> </span><span class="n">enable-spacevim-styled-keys</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+</code></pre></div>
 
 <p>If all went well, then you'll have just created a fully functional new
 SpaceVim layer, just like the CtrlSpace example we went through above.</p>

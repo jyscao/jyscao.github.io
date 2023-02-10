@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
         <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="generator" content="Pelican" />
         <title>Jethro's Tech Blog</title>
         <link rel="stylesheet" href="/theme/css/main.css" />
@@ -20,7 +21,484 @@
 
             <aside id="featured" class="body">
                 <article>
-                    <h1 class="entry-title"><a href="/interface-cache.html">Program to an Interface: An Exercise in Cache Removal</a></h1>
+                    <h1 class="entry-title"><a href="/gossip-network-example.html">Gossip Network Example</a></h1>
+<footer class="post-info">
+        <abbr class="published" title="2023-02-10T00:00:00-05:00">
+                Published: Fri 10 February 2023
+        </abbr>
+
+        <address class="vcard author">
+                By                         <a class="url fn" href="/author/jethro-cao.html">Jethro Cao</a>
+        </address>
+<p>In <a href="/category/programming.html">Programming</a>.</p>
+<p>tags: <a href="/tag/python.html">python</a> <a href="/tag/network-programming.html">network-programming</a> </p>
+</footer><!-- /.post-info --><figure>
+<img src="images/06-1_gossip-network.jpeg" style="width:100%;"
+alt="representative illustration of a social network">
+</figure>
+
+<h2>Context</h2>
+<p>I was given an interesting take-home assignment while interviewing for a
+company last year: implement a simple peer-to-peer network of servers that
+communicate with each other using a <a href="https://en.wikipedia.org/wiki/Gossip_protocol">gossip protocol</a>.</p>
+<p>These were their requirements:</p>
+<ul>
+<li>
+<p>The network must support up to 16 individual servers (nodes) running
+simultaneously</p>
+</li>
+<li>
+<p>At any given time, each node can only have knowledge of 3 other nodes in the
+network</p>
+</li>
+<li>
+<p>At minimum, each node must provide two API methods:</p>
+</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="k">def</span> <span class="nf">submit_message</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Handle an incoming message.&quot;&quot;&quot;</span>
+
+<span class="k">def</span> <span class="nf">get_messages</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns a list of all messages since this node started.</span>
+
+<span class="sd">    Each message should include the path it followed to reach this node.</span>
+
+<span class="sd">    Example output:</span>
+<span class="sd">    - Apple (Node 1 -&gt; Node 8 -&gt; Node 10)</span>
+<span class="sd">    - Banana (Node 3 -&gt; Node 5 -&gt; Node 10)</span>
+<span class="sd">    - Orange (Node 7 -&gt; Node 15 -&gt; Node 9 -&gt; Node 10)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+</code></pre></div>
+
+<ul>
+<li>
+<p>A message submitted to a single node should eventually be received by <strong>all
+nodes</strong> in the network</p>
+</li>
+<li>
+<p>Nodes can only communicate with each other through network calls (TCP, UDP,
+HTTP, etc.), not in-process function calls</p>
+</li>
+<li>
+<p>The solution must be implemented in Python</p>
+</li>
+</ul>
+<p>They provided stub classes for the client and the server, plus a simple CLI
+for interacting with the gossip network. In effect, the design of the system.
+Thus all that remained was for me to color in the boxes, so to speak.</p>
+<h2>Getting Started</h2>
+<p>The first order of business was to install the necessary base software: Python
+3, Docker and <a href="https://python-poetry.org/">Poetry</a>.</p>
+<p>After installing these and fixing an issue with the poetry lockfile that
+failed to install the Python dependencies<sup id="fnref:1"><a class="footnote-ref" href="#fn:1">1</a></sup>, I was ready to inspect and
+experiment the skeleton gossip network using their provided commands:</p>
+<ul>
+<li><code>start-network</code>: spins up a network of 16 nodes using Docker Compose</li>
+<li><code>stop-network</code>:  stops all nodes running in the network</li>
+<li><code>send-message</code>:  send a message to a node once the network has been started</li>
+<li><code>get-messages</code>:  returns all messages received by a single node</li>
+<li><code>remove-node</code>:   stops a single node in the network</li>
+</ul>
+<p>Unfortunately, I ran into another blocker here: the nodes nodes, which ran
+as individual Docker containers, could not communicate with each other.
+Being a Docker/containers skeptic, I decided to rip out the entire Docker
+infrastructure and replace it with the simple to use <code>multiprocessing</code> module
+from Python's standard library<sup id="fnref:2"><a class="footnote-ref" href="#fn:2">2</a></sup>.</p>
+<p>Once that was all in place, I was finally ready to start implementing the
+client and the server.</p>
+<h2>Implementation Details</h2>
+<p>I shall showcase the components of the gossip network by walking you through,
+roughly in sequence, what happens when one executes the <code>send-message</code> command
+to any given node.</p>
+<h3>CLI &amp; Client</h3>
+<p>The CLI is powered by the <a href="http://docopt.org/"><code>docopt</code></a> package, and invoked
+through Poetry. So when the command "<code>gossip send-message &lt;node-number&gt;
+&lt;message&gt;</code>" is executed, <code>docopt</code> parses then recognizes that the predefined
+command <code>send-message</code> has been invoked, thereby activating its following
+conditional:</p>
+<div class="highlight"><pre><span></span><code>    <span class="k">elif</span> <span class="n">args</span><span class="p">[</span><span class="s2">&quot;send-message&quot;</span><span class="p">]:</span>
+        <span class="n">message</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="s2">&quot;&lt;message&gt;&quot;</span><span class="p">]</span>
+        <span class="n">client</span> <span class="o">=</span> <span class="n">init_gossip_client</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="s2">&quot;&lt;node-number&gt;&quot;</span><span class="p">])</span>
+        <span class="n">client</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">relay_limit</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="s2">&quot;--relays&quot;</span><span class="p">]))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Message sent to </span><span class="si">{</span><span class="n">client</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+
+<p>Where <code>init_gossip_client</code> initializes and returns an instance of
+<code>GossipClient</code> to the specified node, upon which the client's <code>send_message</code>
+method below is invoked:</p>
+<div class="highlight"><pre><span></span><code>    <span class="k">def</span> <span class="nf">send_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">is_relay</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">relay_limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Send a message to the current server.&quot;&quot;&quot;</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="s2">&quot;/RELAY&quot;</span> <span class="k">if</span> <span class="n">is_relay</span> <span class="k">else</span> <span class="s2">&quot;/NEW&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_send_to_server</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">cmd</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">relay_limit</span><span class="si">}</span><span class="s2">|</span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+
+<p>The <code>_send_to_server</code> "private" method opens a TCP socket connection
+to its corresponding <code>GossipServer</code>'s TCP-server running on
+<code>localhost:&lt;node-number&gt;</code>.</p>
+<p>When a new message is sent to a node (as in our example), <code>cmd</code> is set to
+<code>"/NEW"</code>. While intermediate nodes forwarding messages to their own neighbors
+sets <code>cmd</code> to <code>"/RELAY"</code>. The <code>cmd</code> metadata is then prepended to the entire
+text streamed to the server.</p>
+<p>This pseudo-IRC-command <code>cmd</code> metadata will be explained in more detail in the
+<a href="#message-handling">Message Handling</a> subsection of the server implementation
+below.</p>
+<h3>Server</h3>
+<p>Each node's <code>GossipServer</code> has the single public method <code>start</code>, which is
+called on execution of the <code>start-network</code> command. This creates an instance
+of <code>GossipTCPServer</code>, which subclasses <a href="https://docs.python.org/3/library/socketserver.html#socketserver.ThreadingTCPServer"><code>socketserver.ThreadingTCPServer</code></a>,
+thus providing the method <a href="https://docs.python.org/3/library/socketserver.html#socketserver.BaseServer.serve_forever"><code>serve_forever</code></a>:</p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">GossipServer</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A server that participates in a peer-to-peer gossip network.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">server_address</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">peer_addrs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize a server with a list of peer addresses.</span>
+
+<span class="sd">        Peer addresses are in the form HOSTNAME:PORT.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">hostname</span><span class="p">,</span> <span class="n">port</span> <span class="o">=</span> <span class="n">server_address</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">host_port_tup</span> <span class="o">=</span> <span class="p">(</span><span class="n">hostname</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">port</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ss</span> <span class="o">=</span> <span class="n">ServerSettings</span><span class="p">(</span><span class="n">hostname</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="n">peer_addrs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Starting Gossip-Node-</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ss</span><span class="o">.</span><span class="n">node_id</span><span class="si">}</span><span class="s2"> with peers:&quot;</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="mi">36</span><span class="p">)</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">ss</span><span class="o">.</span><span class="n">peers</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">GossipTCPServer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">host_port_tup</span><span class="p">,</span> <span class="n">GossipMessageHandler</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ss</span><span class="p">)</span> <span class="k">as</span> <span class="n">server</span><span class="p">:</span>
+            <span class="n">server</span><span class="o">.</span><span class="n">serve_forever</span><span class="p">()</span>
+</code></pre></div>
+
+<h4>Server Settings</h4>
+<p>The property <code>ss</code> above is the <code>ServerSettings</code> dataclass shown below, which
+essentially holds all the configuration data (<code>hostname</code>, <code>port</code>, <code>node_id</code>,
+etc.) and state (<code>peers</code>, received messages stored in <code>msgs_box</code>) for each
+node:</p>
+<div class="highlight"><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">ServerSettings</span><span class="p">:</span>
+    <span class="n">hostname</span><span class="p">:</span>   <span class="nb">str</span>
+    <span class="n">port</span><span class="p">:</span>       <span class="nb">int</span>
+    <span class="n">peer_addrs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">node_id</span><span class="p">:</span>    <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">peers</span><span class="p">:</span>      <span class="nb">list</span><span class="p">[</span><span class="n">GossipClient</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">msgs_box</span><span class="p">:</span>   <span class="nb">dict</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+</code></pre></div>
+
+<h4>Message Handling</h4>
+<p>The bulk of the work is of course performed by <code>GossipMessageHandler</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">GossipMessageHandler</span><span class="p">(</span><span class="n">StreamRequestHandler</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">handle</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">msg_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rfile</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">,</span> <span class="n">maxsplit</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_get_cmd_handler</span><span class="p">()()</span>
+
+    <span class="k">def</span> <span class="nf">_get_cmd_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="kc">None</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;/NEW&quot;</span><span class="p">:</span>    <span class="bp">self</span><span class="o">.</span><span class="n">_proc_new_msg</span><span class="p">,</span>
+            <span class="s2">&quot;/RELAY&quot;</span><span class="p">:</span>  <span class="bp">self</span><span class="o">.</span><span class="n">_proc_relayed_msg</span><span class="p">,</span>
+            <span class="s2">&quot;/GET&quot;</span><span class="p">:</span>    <span class="bp">self</span><span class="o">.</span><span class="n">_send_client_msgs_data</span><span class="p">,</span>
+            <span class="s2">&quot;/PEERS&quot;</span><span class="p">:</span>  <span class="bp">self</span><span class="o">.</span><span class="n">_get_peers_info</span><span class="p">,</span>
+            <span class="s2">&quot;/REMOVE&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_remove_peer</span><span class="p">,</span>
+        <span class="p">}[</span><span class="bp">self</span><span class="o">.</span><span class="n">cmd</span><span class="p">]</span>
+</code></pre></div>
+
+<p>As you can see from the definition of <code>_get_cmd_handler</code> above, 5 commands,
+encoded in the aforementioned pseudo-IRC-command style, are recognized.</p>
+<p>When the bytestream from the node's client is recieved and handled by the
+server, the data is split into 2 portions: the command and the message data.
+In our example with the <code>"/NEW"</code> command, <code>_proc_new_msg</code> will be called to
+handle it:</p>
+<div class="highlight"><pre><span></span><code>    <span class="k">def</span> <span class="nf">_proc_new_msg</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_relay_limit_and_msg_text_on_send</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">msg_id</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">msg_content</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">time_ns</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">curr_msg_attrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">ss</span><span class="o">.</span><span class="n">msgs_box</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">msg_id</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_init_new_msg_attrs</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_path</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">ss</span><span class="o">.</span><span class="n">node_id</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_path_and_relay</span><span class="p">()</span>
+</code></pre></div>
+
+<p>First the <code>msg_data</code> is parsed to set the <code>relay_limit</code><sup id="fnref:3"><a class="footnote-ref" href="#fn:3">3</a></sup>, and the message
+content. Second the current timestamp is appended to the messge content to
+create its unique <code>msg_id</code>. Then a metatdata <code>dict</code> is initialized for the
+current message using <code>_init_new_msg_attrs</code>:</p>
+<div class="highlight"><pre><span></span><code>    <span class="k">def</span> <span class="nf">_init_new_msg_attrs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">list</span><span class="p">,</span> <span class="nb">dict</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]]:</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;in_paths&quot;</span><span class="p">:</span>   <span class="p">[],</span>
+            <span class="s2">&quot;in_counts&quot;</span><span class="p">:</span>  <span class="n">Counter</span><span class="p">({</span><span class="n">p</span><span class="o">.</span><span class="n">id</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">ss</span><span class="o">.</span><span class="n">peers</span><span class="p">}),</span>
+            <span class="s2">&quot;out_counts&quot;</span><span class="p">:</span> <span class="n">Counter</span><span class="p">({</span><span class="n">p</span><span class="o">.</span><span class="n">id</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">ss</span><span class="o">.</span><span class="n">peers</span><span class="p">}),</span>
+            <span class="s2">&quot;is_unread&quot;</span><span class="p">:</span>  <span class="kc">True</span><span class="p">,</span>
+        <span class="p">}</span>
+</code></pre></div>
+
+<p>The <code>"in_paths"</code> key will come to contain the list of nodes this message has
+traversed to reach the current node. The <code>"in_counts"</code> &amp; <code>"out_counts"</code> are
+respectively used to track whether the current node should accept then save
+the incoming message, and broadcast it back out (again) to its neighbors, as
+determined by the value of <code>relay_limit</code>.</p>
+<p>The new message and its metadata are saved into the node's <code>ss.msg_box</code>. Then
+finally, relayed onwards to its peers through <code>_save_path_and_relay</code>:</p>
+<div class="highlight"><pre><span></span><code>    <span class="k">def</span> <span class="nf">_save_path_and_relay</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">curr_msg_attrs</span><span class="p">[</span><span class="s2">&quot;in_paths&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_relay_to_peers</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">msg_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_relay_to_peers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_peers_to_relay</span><span class="p">():</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">curr_msg_attrs</span><span class="p">[</span><span class="s2">&quot;out_counts&quot;</span><span class="p">][</span><span class="n">p</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">relay_limit</span><span class="p">:</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">is_relay</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">relay_limit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">relay_limit</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">curr_msg_attrs</span><span class="p">[</span><span class="s2">&quot;out_counts&quot;</span><span class="p">][</span><span class="n">p</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">def</span> <span class="nf">_get_peers_to_relay</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">GossipClient</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cmd</span> <span class="o">==</span> <span class="s2">&quot;/NEW&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">ss</span><span class="o">.</span><span class="n">peers</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">cmd</span> <span class="o">==</span> <span class="s2">&quot;/RELAY&quot;</span><span class="p">:</span>
+            <span class="c1"># filter out the preceeding node which relayed the current message to this node</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">ss</span><span class="o">.</span><span class="n">peers</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">id</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prev_node</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;this should never be reached!&quot;</span><span class="p">)</span>
+</code></pre></div>
+
+<p>As you can see above in <code>_get_peers_to_relay</code>, when a message sent to the
+node is <code>"/NEW"</code>, the current node will relay the message to all of its
+neighbors <code>server.ss.peers</code> through the <code>p.send_message(...)</code> calls in
+<code>_relay_to_peers</code><sup id="fnref:4"><a class="footnote-ref" href="#fn:4">4</a></sup>. But if the message was already one that has been
+relayed to it from a previous node (<code>self.cmd == "/RELAY"</code>), the <code>prev_node</code>
+will be filtered out, and skipped as the current node proceeds with its own
+relaying responsibilities.</p>
+<h3>Peers &amp; Network Graphs</h3>
+<p>The last core component of this gossip network is the piece responsible
+for the network topology and peers assignment. You may recall from the
+<code>ServerSettings</code> dataclass definition <a href="#server-settings">shown earlier</a> that
+each server node contains a <code>peers</code> property of type <code>list[GossipClient]</code>.
+How exactly are these peers assigned, and by extension the entire network
+constructed?</p>
+<p>As is often the case with Python, a mature and robust library exists for one's
+domain of interest, which in our case is <a href="https://networkx.org/">NetworkX</a>:
+a Python package for the creation, manipulation, and study of the structure,
+dynamics, and functions of complex networks.</p>
+<p>NetworkX provides <a href="https://networkx.org/documentation/stable/reference/generators.html">graph generators</a>
+for over a hundred types of graphs. Once a <a href="https://networkx.org/documentation/stable/reference/classes/graph.html"><code>Graph</code></a></p>
+<p>object has been instantiated with the desired parameters like the number of
+nodes, useful operations such as retrieving the neighbors/peers of any given
+node are provided as primitives by its API. Giving us exactly what's needed.</p>
+<h4>Ciruclar Network</h4>
+<p>Using NetworkX's <code>cycle_graph</code> generator, it was trivial to replace the stub
+graph generator provided in the original project scaffold.</p>
+<figure>
+<img src="images/06-2_circular-network.jpeg" style="width:70%;" class="center">
+<figcaption style="text-align: center;">Fig. 1: circular network of 16 nodes</figcaption>
+</figure>
+
+<h4>Random Network</h4>
+<p>Along the same vein, generating a random network is also straightforward with
+<code>random_regular_graph</code>. In addition to specifying the number of nodes <em>n</em>, we
+must also pass the degree <em>d</em> of each node, which defaults to 3 (as specified
+in the problem requirements). Note that <em>n×d</em> must be an even integer, by the
+<a href="https://en.wikipedia.org/wiki/Handshaking_lemma">handshaking lemma</a>.</p>
+<figure>
+<img src="images/06-3_random-network.jpeg" style="width:70%;" class="center">
+<figcaption style="text-align: center;">Fig. 2: random network of 16 nodes with 3 neighbors each</figcaption>
+</figure>
+
+<h4>Power Law Network</h4>
+<p>There also exists <a href="https://networkx.org/documentation/stable/reference/generated/networkx.generators.random_graphs.powerlaw_cluster_graph.html"><code>powerlaw_cluster_graph</code></a>,
+a power law degree distribution generator. Here is an example of such a
+network:</p>
+<figure>
+<img src="images/06-4_powerlaw-network.jpeg" style="width:70%;" class="center">
+<figcaption style="text-align: center;">Fig. 3: power law network of 16 nodes</figcaption>
+</figure>
+
+<h4>Turán Network</h4>
+<p>Adding a new type of network can also be done with relative ease, which I
+shall demonstrate by example.</p>
+<p>First, we'd need to add the new network type to the <code>docopt</code> CLI
+description in <code>gossip/cli.py</code>, and correctly handle its parameters in
+<code>gossip/start_network.py</code>.</p>
+<p>Then we'd implement <code>TuranNetwork</code> as a new subclass of <code>GossipNetwork</code> inside
+<code>gossip/network.py</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="nc">TuranNetwork</span><span class="p">(</span><span class="n">GossipNetwork</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_nodes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">r_partitions</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">r_parts</span> <span class="o">=</span> <span class="n">r_partitions</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">num_nodes</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_network_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">turan_graph</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_nodes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_parts</span><span class="p">)</span>
+</code></pre></div>
+
+<p>As you can see, it's not doing much more than transparently calling NetworkX's
+built-in <a href="https://networkx.org/documentation/stable/reference/generated/networkx.generators.classic.turan_graph.html">Turán graph generator</a>.</p>
+<p>To make the key property of the Turán graph more evident<sup id="fnref:5"><a class="footnote-ref" href="#fn:5">5</a></sup>, I also overrode
+the <code>_draw_network</code> method inherited from the <code>GossipNetwork</code> parent class,
+which gives us the more visually-intuitive representation below:</p>
+<figure>
+<img src="images/06-5_turan-network.jpeg" style="width:70%;" class="center">
+<figcaption style="text-align: center;">Fig. 4: Turán network of 16 nodes with 4 partitions</figcaption>
+</figure>
+
+<p>Feel free to review the full patch adding the Turán network <a href="https://github.com/jyscao/gossip-network-example/commit/88d3a7c13881853ab378c15aabdb2ea0e9900421">here</a>.</p>
+<h2>Demonstration</h2>
+<p>With the hard work out of the way, let's now take a look at what the (more or
+less) finished product can do.</p>
+<p>Using the concrete example of the <a href="#random-network">random network</a> shown in
+Fig. 2 above, let's first send a message to node 1:</p>
+<div class="highlight"><pre><span></span><code>$<span class="w"> </span>poetry<span class="w"> </span>run<span class="w"> </span>gossip<span class="w"> </span>send-message<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="s2">&quot;Hello World&quot;</span>
+Message<span class="w"> </span>sent<span class="w"> </span>to<span class="w"> </span>Gossip-Node-1
+</code></pre></div>
+
+<p>Then check the messages received by node 10:</p>
+<div class="highlight"><pre><span></span><code>$<span class="w"> </span>poetry<span class="w"> </span>run<span class="w"> </span>gossip<span class="w"> </span>get-messages<span class="w"> </span><span class="m">10</span>
+Fetched<span class="w"> </span>all<span class="w"> </span>messages<span class="w"> </span>from<span class="w"> </span>Gossip-Node-10<span class="p">;</span><span class="w"> </span>showing<span class="w"> </span>all<span class="w"> </span>path<span class="o">(</span>s<span class="o">)</span>:
+
+•<span class="w"> </span>Hello<span class="w"> </span>World
+<span class="w">  </span>↳<span class="w"> </span><span class="m">1</span><span class="w"> </span>➜<span class="w"> </span><span class="m">10</span>
+<span class="w">  </span>↳<span class="w"> </span><span class="m">1</span><span class="w"> </span>➜<span class="w"> </span><span class="m">14</span><span class="w"> </span>➜<span class="w"> </span><span class="m">12</span><span class="w"> </span>➜<span class="w"> </span><span class="m">4</span><span class="w"> </span>➜<span class="w"> </span><span class="m">9</span><span class="w"> </span>➜<span class="w"> </span><span class="m">10</span>
+<span class="w">  </span>↳<span class="w"> </span><span class="m">1</span><span class="w"> </span>➜<span class="w"> </span><span class="m">14</span><span class="w"> </span>➜<span class="w"> </span><span class="m">12</span><span class="w"> </span>➜<span class="w"> </span><span class="m">4</span><span class="w"> </span>➜<span class="w"> </span><span class="m">16</span><span class="w"> </span>➜<span class="w"> </span><span class="m">8</span><span class="w"> </span>➜<span class="w"> </span><span class="m">10</span>
+</code></pre></div>
+
+<p>By default, the command will display all paths taken by the message to reach
+the node in question, of which there are 3 here, one each from node 10's
+neighbors: <code>1</code>, <code>9</code> &amp; <code>8</code> respectively to the paths shown above.</p>
+<p>We can also tell it to display the shortest, longest, &amp; shortest + longest
+paths using the <code>-p</code>, <code>-p</code> &amp; <code>-ppp</code> flags respectively. For example on node 6:</p>
+<div class="highlight"><pre><span></span><code>$<span class="w"> </span>poetry<span class="w"> </span>run<span class="w"> </span>gossip<span class="w"> </span>get-messages<span class="w"> </span><span class="m">6</span><span class="w"> </span>-pp
+Fetched<span class="w"> </span>all<span class="w"> </span>messages<span class="w"> </span>from<span class="w"> </span>Gossip-Node-6<span class="p">;</span><span class="w"> </span>showing<span class="w"> </span>shortest<span class="w"> </span><span class="p">&amp;</span><span class="w"> </span>longest<span class="w"> </span>path<span class="o">(</span>s<span class="o">)</span>:
+
+•<span class="w"> </span>Hello<span class="w"> </span>World
+<span class="w">  </span>↳<span class="w"> </span><span class="m">1</span><span class="w"> </span>➜<span class="w"> </span><span class="m">11</span><span class="w"> </span>➜<span class="w"> </span><span class="m">6</span>
+<span class="w">  </span>↳<span class="w"> </span><span class="m">1</span><span class="w"> </span>➜<span class="w"> </span><span class="m">10</span><span class="w"> </span>➜<span class="w"> </span><span class="m">8</span><span class="w"> </span>➜<span class="w"> </span><span class="m">2</span><span class="w"> </span>➜<span class="w"> </span><span class="m">7</span><span class="w"> </span>➜<span class="w"> </span><span class="m">6</span>
+</code></pre></div>
+
+<p>The <code>get-messages</code> command can optionally return just the read or unread
+messages; a message on node <em>x</em> becomes "read" once it has been retrieved
+with <code>poetry run gossip get-messages x</code>. Additionally, you can pass it the
+repeatable <code>-t</code> flag to view the timestamp of messages with varying levels of
+detail.</p>
+<p>Next let's list the peers of node 4:</p>
+<div class="highlight"><pre><span></span><code>$<span class="w"> </span>poetry<span class="w"> </span>run<span class="w"> </span>gossip<span class="w"> </span>list-peers<span class="w"> </span><span class="m">4</span>
+Gossip-Node-4<span class="w"> </span>has<span class="w"> </span>peers:
+*<span class="w"> </span>Gossip-Node-9<span class="w"> </span><span class="o">(</span><span class="m">127</span>.0.0.1:7009<span class="o">)</span>
+*<span class="w"> </span>Gossip-Node-12<span class="w"> </span><span class="o">(</span><span class="m">127</span>.0.0.1:7012<span class="o">)</span>
+*<span class="w"> </span>Gossip-Node-16<span class="w"> </span><span class="o">(</span><span class="m">127</span>.0.0.1:7016<span class="o">)</span>
+</code></pre></div>
+
+<p>Followed by removing one of its peers, say node 12:</p>
+<div class="highlight"><pre><span></span><code>poetry<span class="w"> </span>run<span class="w"> </span>gossip<span class="w"> </span>remove-node<span class="w"> </span><span class="m">12</span>
+Gossip-Node-12<span class="w"> </span>removed
+</code></pre></div>
+
+<p>Now we see node 4 only has 2 peers remaining<sup id="fnref:6"><a class="footnote-ref" href="#fn:6">6</a></sup>:</p>
+<div class="highlight"><pre><span></span><code>$<span class="w"> </span>poetry<span class="w"> </span>run<span class="w"> </span>gossip<span class="w"> </span>list-peers<span class="w"> </span><span class="m">4</span>
+Gossip-Node-4<span class="w"> </span>has<span class="w"> </span>peers:
+*<span class="w"> </span>Gossip-Node-9<span class="w"> </span><span class="o">(</span><span class="m">127</span>.0.0.1:7009<span class="o">)</span>
+*<span class="w"> </span>Gossip-Node-16<span class="w"> </span><span class="o">(</span><span class="m">127</span>.0.0.1:7016<span class="o">)</span>
+</code></pre></div>
+
+<p>And if we send another message to the network by way of node 1:</p>
+<div class="highlight"><pre><span></span><code>$<span class="w"> </span>poetry<span class="w"> </span>run<span class="w"> </span>gossip<span class="w"> </span>send-message<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="s2">&quot;Goodbye&quot;</span>
+Message<span class="w"> </span>sent<span class="w"> </span>to<span class="w"> </span>Gossip-Node-1
+</code></pre></div>
+
+<p>Then check the message box of node 4:</p>
+<div class="highlight"><pre><span></span><code>$<span class="w"> </span>poetry<span class="w"> </span>run<span class="w"> </span>gossip<span class="w"> </span>get-messages<span class="w"> </span><span class="m">4</span>
+Fetched<span class="w"> </span>all<span class="w"> </span>messages<span class="w"> </span>from<span class="w"> </span>Gossip-Node-4<span class="p">;</span><span class="w"> </span>showing<span class="w"> </span>all<span class="w"> </span>path<span class="o">(</span>s<span class="o">)</span>:
+
+•<span class="w"> </span>Hello<span class="w"> </span>World
+<span class="w">  </span>↳<span class="w"> </span><span class="m">1</span><span class="w"> </span>➜<span class="w"> </span><span class="m">14</span><span class="w"> </span>➜<span class="w"> </span><span class="m">12</span><span class="w"> </span>➜<span class="w"> </span><span class="m">4</span>
+<span class="w">  </span>↳<span class="w"> </span><span class="m">1</span><span class="w"> </span>➜<span class="w"> </span><span class="m">10</span><span class="w"> </span>➜<span class="w"> </span><span class="m">9</span><span class="w"> </span>➜<span class="w"> </span><span class="m">4</span>
+<span class="w">  </span>↳<span class="w"> </span><span class="m">1</span><span class="w"> </span>➜<span class="w"> </span><span class="m">11</span><span class="w"> </span>➜<span class="w"> </span><span class="m">6</span><span class="w"> </span>➜<span class="w"> </span><span class="m">7</span><span class="w"> </span>➜<span class="w"> </span><span class="m">16</span><span class="w"> </span>➜<span class="w"> </span><span class="m">4</span>
+
+•<span class="w"> </span>Goodbye
+<span class="w">  </span>↳<span class="w"> </span><span class="m">1</span><span class="w"> </span>➜<span class="w"> </span><span class="m">10</span><span class="w"> </span>➜<span class="w"> </span><span class="m">9</span><span class="w"> </span>➜<span class="w"> </span><span class="m">4</span>
+<span class="w">  </span>↳<span class="w"> </span><span class="m">1</span><span class="w"> </span>➜<span class="w"> </span><span class="m">11</span><span class="w"> </span>➜<span class="w"> </span><span class="m">6</span><span class="w"> </span>➜<span class="w"> </span><span class="m">7</span><span class="w"> </span>➜<span class="w"> </span><span class="m">16</span><span class="w"> </span>➜<span class="w"> </span><span class="m">4</span>
+</code></pre></div>
+
+<p>We can see the path that allowed the first message <code>"Hello World"</code> to reach
+node 4 from node 12, is no longer usable when we sent the second message
+<code>"Goodbye"</code>. But of course, due to the built-in redundancy in the gossip
+network, the message still reached its destination, which is the entire point.</p>
+<h2>Final Words</h2>
+<p>When working with decentralized networks, gossip as a family of protocols can
+certainly be a valuable tool to achieve certain desired behaviors. Here are a
+couple real-world production-ready examples:</p>
+<ul>
+<li>
+<p><a href="https://www.serf.io/">Serf</a>: the service orchestration and management tool
+from HashiCorp. It uses an efficient and lightweight gossip protocol <a href="https://www.serf.io/docs/internals/gossip.html">to
+broadcast messages to the cluster</a>.</p>
+</li>
+<li>
+<p><a href="https://www.tribler.org/">Tribler</a>: a decentralized anonymous P2P
+BitTorrent client. It uses gossip to enable Tribler users <a href="https://github.com/Tribler/tribler/blob/main/doc/metadata_store/channels_architecture.rst">to discover
+available and high-quality "channels"</a>,
+which are collections of shareable content along with their metadata.</p>
+</li>
+</ul>
+<p>Although this toy project is far from being production-ready for any practical
+utilities, I do hope the walkthrough provided an adequate high-level
+understanding of how pieces of such a system can be put together, as well as
+useful implementation details in the <code>send-message</code> example showcasing how
+commands are both initiated and handled.</p>
+<p>If you wish to play around with this example, you can find the full project
+code on my GitHub <a href="https://github.com/jyscao/gossip-network-example">here</a>.</p>
+<!-- used by the graph figures in the article -->
+<style>
+.center {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 50%;
+}
+</style>
+
+<div class="footnote">
+<hr>
+<ol>
+<li id="fn:1">
+<p><a href="https://github.com/jyscao/gossip-network-example/commit/ca21ab71402d7d869a57feed952db57baacf0de1"><code>poetry.lock</code> fix</a>&#160;<a class="footnote-backref" href="#fnref:1" title="Jump back to footnote 1 in the text">&#8617;</a></p>
+</li>
+<li id="fn:2">
+<p><a href="https://github.com/jyscao/gossip-network-example/commit/3c97e6d7249304d977c290775db8bea09fcd9cca">Removing Docker</a>&#160;<a class="footnote-backref" href="#fnref:2" title="Jump back to footnote 2 in the text">&#8617;</a></p>
+</li>
+<li id="fn:3">
+<p>The <code>relay_limit</code>, which defaults to 1, is an important parameter that
+determines the number of times each node broadcasts a received message to all
+of its neighboring nodes. When executing <code>send-message</code> with <code>--relays=3</code>
+for example, then each node, instead of receiving a message 3 times (once
+from each of its 3 neighbors), they would receive it 9 times (3/node × 3
+nodes).&#160;<a class="footnote-backref" href="#fnref:3" title="Jump back to footnote 3 in the text">&#8617;</a></p>
+</li>
+<li id="fn:4">
+<p>These neighbor nodes would then save the relayed message, and in-turn
+continue the relaying to their own respective neighbors. An alternative
+messaging mechanism would be to check if a node has already received the same
+message from another neighbor; if not, save and relay as normal; if so, then
+skip the processing of this redundant message. Both approaches have their own
+pros and cons.&#160;<a class="footnote-backref" href="#fnref:4" title="Jump back to footnote 4 in the text">&#8617;</a></p>
+</li>
+<li id="fn:5">
+<p><a href="https://en.wikipedia.org/wiki/Tur%C3%A1n_graph">Turán graph</a>: complete
+multipartite graph; it is formed by partitioning a set of <em>n</em> vertices into
+<em>r</em> subsets, with sizes as equal as possible, and then connecting two vertices
+by an edge if and only if they belong to different subsets.&#160;<a class="footnote-backref" href="#fnref:5" title="Jump back to footnote 5 in the text">&#8617;</a></p>
+</li>
+<li id="fn:6">
+<p>Currently, once a node has been removed from the network, its erstwhile
+neighbors simply have their degree of connectedness reduced by 1. An
+improvement would be to reconfigure the network, where it's possible without
+violating the handshaking lemma, to connect nodes that have lost this
+neighbor.&#160;<a class="footnote-backref" href="#fnref:6" title="Jump back to footnote 6 in the text">&#8617;</a></p>
+</li>
+</ol>
+</div>                </article>
+            </aside><!-- /#featured -->
+                <section id="content" class="body">
+                    <h1>Other articles</h1>
+                    <hr />
+                    <ol id="posts-list" class="hfeed">
+
+            <li><article class="hentry">
+                <header>
+                    <h1><a href="/interface-cache.html" rel="bookmark"
+                           title="Permalink to Program to an Interface: An Exercise in Cache Removal">Program to an Interface: An Exercise in Cache Removal</a></h1>
+                </header>
+
+                <div class="entry-content">
 <footer class="post-info">
         <abbr class="published" title="2020-12-31T00:00:00-05:00">
                 Published: Thu 31 December 2020
@@ -35,309 +513,10 @@
         </address>
 <p>In <a href="/category/programming.html">Programming</a>.</p>
 <p>tags: <a href="/tag/software-design.html">software-design</a> <a href="/tag/vimscript.html">vimscript</a> <a href="/tag/oop.html">OOP</a> </p>
-</footer><!-- /.post-info --><figure>
-<img src="images/05-1_interface.png" style="width:100%;"
-alt="simple diagram representing two different interfaces">
-</figure>
-
-<p>In software engineering, there is the simple yet powerful idea of
-programming to an interface. While the precise manner this is put
-into practice differs depending on the specifics of a given program,
-the core principle behind the idea remains the same. When implemented
-well, software systems that effectively utilize <a href="https://en.wikipedia.org/wiki/Interface-based_programming">interface-based
-programming</a>
-will tend to exhibit desirable characteristics such as loose coupling, high
-cohesion, and better modularity, thereby improving code maintainability and
-extensibility.</p>
-<p>In this post, I'll be explaining how to program to an
-interface by walking-through a recent contribution I'd made to
-<a href="https://github.com/vim-ctrlspace/vim-ctrlspace">Vim-CtrlSpace</a> (a
-workflow-management / fuzzy-finder plugin), which added the ability to
-disable the use of its default files cache. It's my hope that at least some
-intermediate-leveled programmers, who might want to improve the designs of
-their programs, would find this useful. And while I'm aiming to keep the
-implementation details, and even more so the specifics of Vimscript light,
-kindred spirits who enjoy programming in this quirky language might also find
-an interesting nugget or two in here.</p>
-<h2>Problem Context</h2>
-<p>Like other fuzzy finders, CtrlSpace has a files mode where users can search
-and open files from their projects. To make this work, upon encountering a new
-project (marked by VCS directories like <code>.git/</code> and <code>.hg/</code>), CtrlSpace will
-index all relevant files through globbing, then store their paths in a plain
-textfile. For large projects (the Linux kernel with 70k+ files for instance),
-this indexing process can take a while; but once complete, subsequent file
-lookups become effectively instantaneous, as all filepaths are cached at that
-point.</p>
-<p>While this workflow mostly works well, especially on mature projects with
-relatively static file structures, it comes with the attendant problem of
-using a cache, i.e. how and when to invalidate it. Indeed, whenever one
-creates or removes a file, or even just switching to a branch with a slightly
-different set of files, the cache becomes outdated, and requires a manual
-refresh by reindexing if one wishes to access the newly created file (and
-such) through CtrlSpace. Therefore having an option to disable the use of this
-textfile cache can be more convenient, especially for projects whose file
-structure experiences high flux, and for those that are smaller in sizes.</p>
-<h2>Preliminary Tries</h2>
-<p>A naive but by no means easy approach would be to write new procedural logic
-that wires up the plugin's requisite functionalities without executing the
-caching operations. So where it currently always reads the contents of the
-cached textfile when entering the files mode, the new logic might skip this
-step under the right conditions. I won't bother showing code examples for this
-approach, as it'll most likely just amount to a myriad of scattered if-blocks
-executing seemingly unrelated functions, which is a type of programming I'm
-sure most of us have enough firsthand experience with. Needless to say, such
-an approach greatly increases complexity, coupling and repetitions in the
-codebase, which tend to lead to the dreaded spaghettification over time. Not
-recommended.</p>
-<p>A slightly better approach would be to limit the conditional branching to
-within the scopes of the functions implementing the actual textfile cache.
-Doing so allows their call sites to remain unmodified as long as they still
-return the correct data or execute the appropriate procedures.</p>
-<p>Let's see how this can be applied to the function that loads the contents of
-the textfile cache <code>s:loadFilesFromCache</code>:</p>
-<div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! s:loadFilesFromCache</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
-    <span class="n">let</span> <span class="s">filename</span> <span class="p">=</span> <span class="n">ctrlspace</span>#<span class="n">util</span>#<span class="n">FilesCache</span><span class="p">()</span>
-    <span class="n">if</span> <span class="s">empty(filename)</span> <span class="o">||</span> !<span class="n">filereadable</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
-        <span class="n">return</span>
-    <span class="s">endif</span>
-    <span class="n">let</span> <span class="s">s:files</span> <span class="p">=</span> <span class="n">readfile</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
-<span class="n">endfunction</span>
-</pre></div>
-
-
-<p>So <code>s:loadFilesFromCache</code> first gets the path to the textfile cache for the
-current project, ensures it's non-empty and is readable, then reads its
-contents into the script-local list <code>s:files</code>.</p>
-<p>To implement the approach just described, something along the lines of the
-following should work:</p>
-<div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! s:loadFilesFromCache</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
-    <span class="n">if</span> <span class="s">s:config.EnableFilesCache</span>
-        <span class="n">let</span> <span class="s">filename</span> <span class="p">=</span> <span class="n">ctrlspace</span>#<span class="n">util</span>#<span class="n">FilesCache</span><span class="p">()</span>
-        <span class="n">if</span> <span class="s">empty(filename)</span> <span class="o">||</span> !<span class="n">filereadable</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
-            <span class="n">return</span>
-        <span class="s">endif</span>
-        <span class="n">let</span> <span class="s">s:files</span> <span class="p">=</span> <span class="n">readfile</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
-    <span class="n">else</span>
-        <span class="s">&quot;</span> <span class="s">...</span>
-        <span class="s">&quot; store filepaths into s:files w/o reading from the textfile cache</span>
-<span class="s">        &quot;</span> <span class="k">...</span>
-    <span class="n">endif</span>
-<span class="s">endfunction</span>
-</pre></div>
-
-
-<p>The code to be executed when the textfile cache is enabled is the exact same,
-just now wrapped in an if-block; while in the else-block, logic for a disabled
-cache can be added. And as long as the function can still populate <code>s:files</code>
-with the project's filepaths, by calling the files indexing function in the
-else-branch for example, then all callers of <code>s:loadFilesFromCache</code> should
-remain satisfied.</p>
-<p>The underlying idea embodied in the approach above isn't far off in spirit to
-that of programming to an interface. The key insight is that if the API of
-the cache system can be made into an unbreakable contract, then its functions
-can be treated as black boxes, thereby freeing their callers from having care
-about the implementation details of the cache. Where this approach fell short
-is that it doesn't take the idea far enough.</p>
-<p>In addition to the function <code>s:loadFilesFromCache</code>, there are
-also <code>s:saveFilesInCache</code>, <code>ctrlspace#files#RefreshFiles</code> and
-<code>ctrlspace#files#CollectFiles</code>; so the same conditional checks and branching
-logic would need to be added into those functions as well. This will
-definitely result in a non-trivial amount of code duplication. Furthermore,
-if you later wanted to add an entirely new system for retrieving and handling
-project files, the internal implementations of these functions can quickly
-become unwieldy, making the code error-prone and brittle.</p>
-<h2>Program to the Interface</h2>
-<h3>Design</h3>
-<p>Astute readers have probably already guessed where this is going. Instead of
-adding the logic to disable the cache inside existing functions implementing
-the textfile cache, why not strive for even greater modularity by partitioning
-the set of behaviors needed to implement the functioning textfile cache and
-a disabling null cache into two non-overlapping components? With the help of
-some Vimscript-styled OOP, that's exactly what I did.</p>
-<p>In effect, both cache objects contain common data attributes like a <code>files</code>
-list, and some shared helper methods. But most importantly, they both
-implement 4 key methods that define a uniform interface:</p>
-<ul>
-<li><code>cache.load</code>, replaces <code>s:loadFilesFromCache</code> entirely</li>
-<li><code>cache.save</code>, replaces <code>s:saveFilesInCache</code> entirely</li>
-<li><code>cache.refresh</code>, replaces <code>ctrlspace#files#RefreshFiles</code> in part</li>
-<li><code>cache.collect</code>, replaces the internals of and is wrapped by <code>ctrlspace#files#CollectFiles</code></li>
-</ul>
-<p>Callers of the original cache system's functions will now call the equivalent
-methods on a cache object, which can either be the <code>file_cache</code> or the
-<code>null_cache</code> depending on how the user has configured it. The point is,
-functions that the cache system neither know nor care to know exactly how it
-works.</p>
-<p>This well-defined interface with its clear-cut boundaries also significantly
-simplifies both the maintenance of and extensions to the cache system. With
-regards to maintenance, since the two caches have zero interactions, bugs
-that occur in one are necessarily contained within its own code. As for
-extensions, I've been meaning to add a new hybrid cache that'll be able to
-reap the benefits of both existing caches. The idea is it can behave like the
-<code>null_cache</code> when working on projects containing less than <em>N</em> files to get
-the convenience of never needing to manually refresh the cache; and as the
-<code>file_cache</code> for projects over that threshold to enjoy fast filepaths lookups
-with tens or even hundreds of thousands of files. Adding this still won't be
-trivial, but the new interface-based design should make it quite manageable.</p>
-<p>This is essentially all the engineering principles I can offer you in this
-article, and you really should be ready to put the theory into practice.
-Though if you're the type to enjoy delving into the nitty-gritty details,
-the remaining subsections do provide some glimpses into the implementation
-and usage of this specific interface that we've only been discussing at a
-high-level so far.</p>
-<h3>Implementation</h3>
-<p>I'll only showcase 2 of the 4 methods required to implement the interface
-designed above, since the other two are basically just wrappers around these
-that add a couple of minor conveniences. But if you're interested, the
-complete implementation of the plugin's cache system (and only that) resides
-entirely in the source <a href="https://github.com/vim-ctrlspace/vim-ctrlspace/blob/master/autoload/ctrlspace/cache.vim">cache.vim</a>.</p>
-<p>The snippet below shows the <code>load</code> methods for both caches:</p>
-<div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! s:file_cache.load</span><span class="p">()</span><span class="w"> </span><span class="n">dict</span> <span class="n">abort</span>
-    <span class="n">let</span> <span class="s">filename</span> <span class="p">=</span> <span class="n">ctrlspace</span>#<span class="n">util</span>#<span class="n">FilesCache</span><span class="p">()</span>
-    <span class="n">if</span> <span class="s">empty(filename)</span> <span class="o">||</span> !<span class="n">filereadable</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
-        <span class="n">return</span>
-    <span class="s">endif</span>
-    <span class="n">let</span> <span class="s">self.files</span> <span class="p">=</span> <span class="n">readfile</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
-<span class="n">endfunction</span>
-
-<span class="s">function!</span> <span class="s">s:null_cache.load()</span> <span class="s">dict</span> <span class="s">abort</span>
-    <span class="n">let</span> <span class="s">self.files</span> <span class="p">=</span> <span class="n">s</span><span class="p">:</span><span class="n">glob_project_files</span><span class="p">()</span>
-<span class="n">endfunction</span>
-</pre></div>
-
-
-<p>The <code>s:file_cache.load</code> method is almost a line for line copy of the
-original <code>s:loadFilesFromCache</code> function, with the only deviation being
-the last line, which reads and assigns the contents in the textfile to
-the instance variable <code>self.files</code> (more on how this works in Vimscript
-below), instead of the script-local variable <code>s:files</code> in the original
-implementation. The <code>null_cache.load</code> method on the other hand just calls the
-<code>s:glob_project_files</code> helper each time, which is the same function used by
-the <code>file_cache</code> to index and populate its textfile cache as well. In both
-cases, their respective <code>self.files</code> attribute will contain the filepaths of
-the project, and can be passed onto whichever functions that need them.</p>
-<p>Comparing both <code>save</code> methods, we have:</p>
-<div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! s:file_cache.save</span><span class="p">()</span><span class="w"> </span><span class="n">dict</span> <span class="n">abort</span>
-    <span class="n">let</span> <span class="s">filename</span> <span class="p">=</span> <span class="n">ctrlspace</span>#<span class="n">util</span>#<span class="n">FilesCache</span><span class="p">()</span>
-    <span class="n">if</span> <span class="s">empty(filename)</span>
-        <span class="n">return</span>
-    <span class="s">endif</span>
-    <span class="n">call</span> <span class="s">writefile(self.files,</span> <span class="s">filename)</span>
-<span class="n">endfunction</span>
-
-<span class="s">function!</span> <span class="s">s:null_cache.save()</span> <span class="s">abort</span>
-    <span class="n">return</span>
-<span class="s">endfunction</span>
-</pre></div>
-
-
-<p>I had not shown the implementation of the original <code>s:saveFilesInCache</code>
-function, but <code>s:file_cache.save</code> also just reimplements it and does the exact
-same thing, which is to perform the inverse operation to <code>s:file_cache.load</code>,
-i.e. move the in-memory filepaths data stored in <code>self.files</code> onto disk by
-writing to the textfile. The <code>s:null_cache.save</code> method instead just performs
-a no-op.</p>
-<h5>OOP in Vimscript</h5>
-<p>A brief aside for the Vimscript enthusiasts, all cache methods except
-for <code>s:null_cache.save</code> (because a no-op needs no access to its own data
-of course) are implemented using Vim's dictionary-functions (run <code>:help
-dictionary-function</code> inside Vim). This is facilitated by the <code>dict</code> attribute
-following the function definitions, which grants the function access to the
-local variable <code>self</code> that points to the dictionary instance it's invoked
-from, thereby effectively emulating an object in OOP.</p>
-<p>The dot notation used in the function definition is just syntactic sugar.
-Under-the-hood these objects are still plain Vimscript dictionaries, meaning
-that the following is an equally valid way to define the <code>s:null_cache.load</code>
-method as an example:</p>
-<div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! s:load_by_glob</span><span class="p">()</span><span class="w"> </span><span class="n">dict</span> <span class="n">abort</span>
-    <span class="n">let</span> <span class="s">self.files</span> <span class="p">=</span> <span class="n">s</span><span class="p">:</span><span class="n">glob_project_files</span><span class="p">()</span>
-<span class="n">endfunction</span>
-
-<span class="s">let</span> <span class="s">s:null_cache</span> <span class="p">=</span> <span class="p">{</span><span class="s">&#39;files&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s">&#39;load&#39;</span><span class="p">:</span> <span class="k">function</span><span class="p">(</span><span class="s">&quot;s:load_by_glob&quot;</span><span class="p">)}</span>
-&quot; <span class="n">now</span> <span class="n">s</span><span class="p">:</span><span class="n">null_cache</span><span class="p">.</span><span class="n">load</span><span class="p">()</span> <span class="n">works</span> <span class="n">as</span> <span class="n">before</span>
-</pre></div>
-
-
-<p>The method name <code>load</code> is a string key in the dictionary, with its
-corresponding value being the function reference (see <code>:help Funcref</code>) that
-actually implements it. With multiple methods needing to be defined on both
-caches however, it's more succinct to just create the dictionary objects once
-like below, then attach their respective methods directly, as shown earlier.</p>
-<div class="highlight"><pre><span></span><span class="n">let</span> <span class="n">s</span><span class="p">:</span><span class="n">file_cache</span> <span class="o">=</span> <span class="err">{}</span>
-
-<span class="n">let</span> <span class="n">s</span><span class="p">:</span><span class="n">null_cache</span> <span class="o">=</span> <span class="err">{}</span>
-</pre></div>
-
-
-<p>As a final word on OOP in Vimscript, I'd just like to point out that it more
-so resembles JavaScript's prototype-based OOP, as opposed to the class-based
-kind used by most OO-languages. So if you're familiar with the OO-semantics
-of JS, then Vimscript's should be very easy to pick-up (or if you're like me,
-writing OOP in Vimscript can help you learn JavaScript's instead). If one
-wants to do prototypal inheritance for example, one can use Vim's built-in
-<code>deepcopy</code> function to clone the an existing dictionary object, then modify
-the new instance however one sees fit.</p>
-<h3>Usage</h3>
-<p>No class in Vimscript also means no constructors. But we can ape a rough
-functionally equivalent like so:</p>
-<div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! ctrlspace#cache#Init</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
-  <span class="n">let</span> <span class="s">cache</span> <span class="p">=</span> <span class="n">s</span><span class="p">:</span><span class="n">config</span><span class="p">.</span><span class="n">EnableFilesCache</span> ? <span class="n">s</span><span class="p">:</span><span class="n">file_cache</span> <span class="p">:</span> <span class="n">s</span><span class="p">:</span><span class="n">null_cache</span>
-  <span class="n">call</span> <span class="s">s:cache_common(cache)</span>
-  <span class="n">return</span> <span class="s">cache</span>
-<span class="n">endfunction</span>
-
-<span class="s">function!</span> <span class="s">s:cache_common(cache)</span> <span class="s">abort</span>
-  <span class="n">let</span> <span class="s">a:cache.files</span> <span class="p">=</span> <span class="p">[]</span>
-  <span class="n">let</span> <span class="s">a:cache.items</span> <span class="p">=</span> <span class="p">[]</span>
-  <span class="n">let</span> <span class="s">a:cache.clear_all</span> <span class="p">=</span> <span class="k">function</span><span class="p">(</span><span class="s">&#39;s:clear_all&#39;</span><span class="p">)</span>
-  <span class="n">let</span> <span class="s">a:cache.get_files</span> <span class="p">=</span> <span class="k">function</span><span class="p">(</span><span class="s">&#39;s:get_files&#39;</span><span class="p">)</span>
-  <span class="n">let</span> <span class="s">a:cache.get_items</span> <span class="p">=</span> <span class="k">function</span><span class="p">(</span><span class="s">&#39;s:get_items&#39;</span><span class="p">)</span>
-  <span class="n">let</span> <span class="s">a:cache.map_files2items</span> <span class="p">=</span> <span class="k">function</span><span class="p">(</span><span class="s">&#39;s:map_files2items&#39;</span><span class="p">)</span>
-<span class="n">endfunction</span>
-</pre></div>
-
-
-<p>Inside the <code>ctrlspace#cache#Init</code> "constructor", the correct type of cache
-is selected by checking the value of <code>s:config.EnableFilesCache</code>, which is
-actually a Vim global variable (see <code>:help g:</code>) that can be set by the user in
-their <code>.vimrc</code>. Note that this is the only place in the entire codebase where
-this conditional check is done. Then some common data initialized and methods
-attached with <code>call s:cache_common(cache)</code>. And finally, this <code>cache</code> object
-is returned.</p>
-<p>Now inside of the
-<a href="https://github.com/vim-ctrlspace/vim-ctrlspace/blob/master/autoload/ctrlspace/files.vim"><code>files.vim</code></a>
-source, where the cache object is actually used, all that's needed is:</p>
-<div class="highlight"><pre><span></span><span class="err">let s:Cache = ctrlspace#cache#Init()</span>
-</pre></div>
-
-
-<p>Once more, functions inside of <code>files.vim</code> are completely agnostic about how
-its cache actually works. All they know is that they can invoke its <code>load()</code>,
-<code>save()</code>, <code>collect()</code> and <code>refresh()</code> methods; and count on these methods to
-behave correctly due to the guarantees of the interface.</p>
-<h2>Beyond OOP-Based Interfaces</h2>
-<p>As mentioned in the introduction, programming to an interface is ultimately
-quite a simple idea, and once internalized, you'd naturally start to think in
-its terms when designing your programs. But despite its conceptual simplicity,
-or perhaps because of it, it's also extremely powerful.</p>
-<p>Simple ideas tend to be generalizable ones. So although programming to an
-interface seems to naturally lend itself to the OOP paradigm, to the point
-that <code>interface</code> is even a built-in construct in some languages like
-<a href="https://docs.oracle.com/javase/tutorial/java/IandI/createinterface.html">Java</a>
-and <a href="https://www.php.net/manual/en/language.oop5.interfaces.php">PHP</a>
-(and alternatively termed a
-<a href="https://en.wikipedia.org/wiki/Protocol_(object-oriented_programming)">protocol</a>
-in others), its fundamental principle is orthogonal to object-oriented
-concepts.</p>
-<p>This more general approach on how to program to an interface is precisely what
-I'd like to demonstrate in a <a href="#">follow-up post</a>. I don't expect it'll impart
-any additional insights onto the reader, but there will be plenty of gory cool
-hacks, all in Vimscript of course!</p>                </article>
-            </aside><!-- /#featured -->
-                <section id="content" class="body">
-                    <h1>Other articles</h1>
-                    <hr />
-                    <ol id="posts-list" class="hfeed">
+</footer><!-- /.post-info -->                <p>An example of interface-based programming using OOP in Vimscript.</p>
+                <a class="readmore" href="/interface-cache.html">read more</a>
+                </div><!-- /.entry-content -->
+            </article></li>
 
             <li><article class="hentry">
                 <header>

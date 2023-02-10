@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
         <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="generator" content="Pelican" />
         <title>Jethro's Tech Blog - software-design</title>
         <link rel="stylesheet" href="/theme/css/main.css" />
@@ -95,36 +96,34 @@ Doing so allows their call sites to remain unmodified as long as they still
 return the correct data or execute the appropriate procedures.</p>
 <p>Let's see how this can be applied to the function that loads the contents of
 the textfile cache <code>s:loadFilesFromCache</code>:</p>
-<div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! s:loadFilesFromCache</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
-    <span class="n">let</span> <span class="s">filename</span> <span class="p">=</span> <span class="n">ctrlspace</span>#<span class="n">util</span>#<span class="n">FilesCache</span><span class="p">()</span>
-    <span class="n">if</span> <span class="s">empty(filename)</span> <span class="o">||</span> !<span class="n">filereadable</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
-        <span class="n">return</span>
-    <span class="s">endif</span>
-    <span class="n">let</span> <span class="s">s:files</span> <span class="p">=</span> <span class="n">readfile</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><span class="k">function</span><span class="nf">! s:loadFilesFromCache</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
+<span class="w">    </span><span class="n">let</span><span class="w"> </span><span class="n">filename</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">ctrlspace</span>#<span class="n">util</span>#<span class="n">FilesCache</span><span class="p">()</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nb">empty</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span>!<span class="n">filereadable</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+<span class="w">        </span><span class="k">return</span>
+<span class="w">    </span><span class="n">endif</span>
+<span class="w">    </span><span class="n">let</span><span class="w"> </span><span class="n">s</span><span class="p">:</span><span class="n">files</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">readfile</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
 <span class="n">endfunction</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>So <code>s:loadFilesFromCache</code> first gets the path to the textfile cache for the
 current project, ensures it's non-empty and is readable, then reads its
 contents into the script-local list <code>s:files</code>.</p>
 <p>To implement the approach just described, something along the lines of the
 following should work:</p>
-<div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! s:loadFilesFromCache</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
-    <span class="n">if</span> <span class="s">s:config.EnableFilesCache</span>
-        <span class="n">let</span> <span class="s">filename</span> <span class="p">=</span> <span class="n">ctrlspace</span>#<span class="n">util</span>#<span class="n">FilesCache</span><span class="p">()</span>
-        <span class="n">if</span> <span class="s">empty(filename)</span> <span class="o">||</span> !<span class="n">filereadable</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
-            <span class="n">return</span>
-        <span class="s">endif</span>
-        <span class="n">let</span> <span class="s">s:files</span> <span class="p">=</span> <span class="n">readfile</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
-    <span class="n">else</span>
-        <span class="s">&quot;</span> <span class="s">...</span>
-        <span class="s">&quot; store filepaths into s:files w/o reading from the textfile cache</span>
-<span class="s">        &quot;</span> <span class="k">...</span>
-    <span class="n">endif</span>
-<span class="s">endfunction</span>
-</pre></div>
-
+<div class="highlight"><pre><span></span><code><span class="k">function</span><span class="nf">! s:loadFilesFromCache</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="n">s</span><span class="p">:</span><span class="n">config</span><span class="p">.</span><span class="n">EnableFilesCache</span>
+<span class="w">        </span><span class="n">let</span><span class="w"> </span><span class="n">filename</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">ctrlspace</span>#<span class="n">util</span>#<span class="n">FilesCache</span><span class="p">()</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="nb">empty</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span>!<span class="n">filereadable</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+<span class="w">            </span><span class="k">return</span>
+<span class="w">        </span><span class="n">endif</span>
+<span class="w">        </span><span class="n">let</span><span class="w"> </span><span class="n">s</span><span class="p">:</span><span class="n">files</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">readfile</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+<span class="w">    </span><span class="k">else</span>
+<span class="w">        </span><span class="s">&quot; ...</span>
+<span class="s">        &quot;</span><span class="w"> </span><span class="n">store</span><span class="w"> </span><span class="n">filepaths</span><span class="w"> </span><span class="n">into</span><span class="w"> </span><span class="n">s</span><span class="p">:</span><span class="n">files</span><span class="w"> </span><span class="n">w</span><span class="o">/</span><span class="n">o</span><span class="w"> </span><span class="n">reading</span><span class="w"> </span><span class="n">from</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">textfile</span><span class="w"> </span><span class="n">cache</span>
+<span class="w">        </span>&quot;<span class="w"> </span><span class="k">...</span>
+<span class="w">    </span><span class="n">endif</span>
+<span class="n">endfunction</span>
+</code></pre></div>
 
 <p>The code to be executed when the textfile cache is enabled is the exact same,
 just now wrapped in an if-block; while in the else-block, logic for a disabled
@@ -192,19 +191,18 @@ that add a couple of minor conveniences. But if you're interested, the
 complete implementation of the plugin's cache system (and only that) resides
 entirely in the source <a href="https://github.com/vim-ctrlspace/vim-ctrlspace/blob/master/autoload/ctrlspace/cache.vim">cache.vim</a>.</p>
 <p>The snippet below shows the <code>load</code> methods for both caches:</p>
-<div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! s:file_cache.load</span><span class="p">()</span><span class="w"> </span><span class="n">dict</span> <span class="n">abort</span>
-    <span class="n">let</span> <span class="s">filename</span> <span class="p">=</span> <span class="n">ctrlspace</span>#<span class="n">util</span>#<span class="n">FilesCache</span><span class="p">()</span>
-    <span class="n">if</span> <span class="s">empty(filename)</span> <span class="o">||</span> !<span class="n">filereadable</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
-        <span class="n">return</span>
-    <span class="s">endif</span>
-    <span class="n">let</span> <span class="s">self.files</span> <span class="p">=</span> <span class="n">readfile</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><span class="k">function</span><span class="nf">! s:file_cache.load</span><span class="p">()</span><span class="w"> </span><span class="n">dict</span><span class="w"> </span><span class="n">abort</span>
+<span class="w">    </span><span class="n">let</span><span class="w"> </span><span class="n">filename</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">ctrlspace</span>#<span class="n">util</span>#<span class="n">FilesCache</span><span class="p">()</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nb">empty</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span>!<span class="n">filereadable</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+<span class="w">        </span><span class="k">return</span>
+<span class="w">    </span><span class="n">endif</span>
+<span class="w">    </span><span class="n">let</span><span class="w"> </span><span class="n">self</span><span class="p">.</span><span class="n">files</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">readfile</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
 <span class="n">endfunction</span>
 
-<span class="s">function!</span> <span class="s">s:null_cache.load()</span> <span class="s">dict</span> <span class="s">abort</span>
-    <span class="n">let</span> <span class="s">self.files</span> <span class="p">=</span> <span class="n">s</span><span class="p">:</span><span class="n">glob_project_files</span><span class="p">()</span>
+<span class="s">function!</span><span class="w"> </span><span class="s">s:null_cache.load()</span><span class="w"> </span><span class="s">dict</span><span class="w"> </span><span class="s">abort</span>
+<span class="w">    </span><span class="n">let</span><span class="w"> </span><span class="n">self</span><span class="p">.</span><span class="n">files</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">s</span><span class="p">:</span><span class="n">glob_project_files</span><span class="p">()</span>
 <span class="n">endfunction</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>The <code>s:file_cache.load</code> method is almost a line for line copy of the
 original <code>s:loadFilesFromCache</code> function, with the only deviation being
@@ -217,19 +215,18 @@ the <code>file_cache</code> to index and populate its textfile cache as well. In
 cases, their respective <code>self.files</code> attribute will contain the filepaths of
 the project, and can be passed onto whichever functions that need them.</p>
 <p>Comparing both <code>save</code> methods, we have:</p>
-<div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! s:file_cache.save</span><span class="p">()</span><span class="w"> </span><span class="n">dict</span> <span class="n">abort</span>
-    <span class="n">let</span> <span class="s">filename</span> <span class="p">=</span> <span class="n">ctrlspace</span>#<span class="n">util</span>#<span class="n">FilesCache</span><span class="p">()</span>
-    <span class="n">if</span> <span class="s">empty(filename)</span>
-        <span class="n">return</span>
-    <span class="s">endif</span>
-    <span class="n">call</span> <span class="s">writefile(self.files,</span> <span class="s">filename)</span>
+<div class="highlight"><pre><span></span><code><span class="k">function</span><span class="nf">! s:file_cache.save</span><span class="p">()</span><span class="w"> </span><span class="n">dict</span><span class="w"> </span><span class="n">abort</span>
+<span class="w">    </span><span class="n">let</span><span class="w"> </span><span class="n">filename</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">ctrlspace</span>#<span class="n">util</span>#<span class="n">FilesCache</span><span class="p">()</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nb">empty</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+<span class="w">        </span><span class="k">return</span>
+<span class="w">    </span><span class="n">endif</span>
+<span class="w">    </span><span class="n">call</span><span class="w"> </span><span class="n">writefile</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">files</span><span class="p">,</span><span class="w"> </span><span class="n">filename</span><span class="p">)</span>
 <span class="n">endfunction</span>
 
-<span class="s">function!</span> <span class="s">s:null_cache.save()</span> <span class="s">abort</span>
-    <span class="n">return</span>
-<span class="s">endfunction</span>
-</pre></div>
-
+<span class="s">function!</span><span class="w"> </span><span class="s">s:null_cache.save()</span><span class="w"> </span><span class="s">abort</span>
+<span class="w">    </span><span class="k">return</span>
+<span class="n">endfunction</span>
+</code></pre></div>
 
 <p>I had not shown the implementation of the original <code>s:saveFilesInCache</code>
 function, but <code>s:file_cache.save</code> also just reimplements it and does the exact
@@ -249,25 +246,23 @@ from, thereby effectively emulating an object in OOP.</p>
 Under-the-hood these objects are still plain Vimscript dictionaries, meaning
 that the following is an equally valid way to define the <code>s:null_cache.load</code>
 method as an example:</p>
-<div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! s:load_by_glob</span><span class="p">()</span><span class="w"> </span><span class="n">dict</span> <span class="n">abort</span>
-    <span class="n">let</span> <span class="s">self.files</span> <span class="p">=</span> <span class="n">s</span><span class="p">:</span><span class="n">glob_project_files</span><span class="p">()</span>
+<div class="highlight"><pre><span></span><code><span class="k">function</span><span class="nf">! s:load_by_glob</span><span class="p">()</span><span class="w"> </span><span class="n">dict</span><span class="w"> </span><span class="n">abort</span>
+<span class="w">    </span><span class="n">let</span><span class="w"> </span><span class="n">self</span><span class="p">.</span><span class="n">files</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">s</span><span class="p">:</span><span class="n">glob_project_files</span><span class="p">()</span>
 <span class="n">endfunction</span>
 
-<span class="s">let</span> <span class="s">s:null_cache</span> <span class="p">=</span> <span class="p">{</span><span class="s">&#39;files&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s">&#39;load&#39;</span><span class="p">:</span> <span class="k">function</span><span class="p">(</span><span class="s">&quot;s:load_by_glob&quot;</span><span class="p">)}</span>
-&quot; <span class="n">now</span> <span class="n">s</span><span class="p">:</span><span class="n">null_cache</span><span class="p">.</span><span class="n">load</span><span class="p">()</span> <span class="n">works</span> <span class="n">as</span> <span class="n">before</span>
-</pre></div>
-
+<span class="s">let</span><span class="w"> </span><span class="s">s:null_cache</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">{</span><span class="s">&#39;files&#39;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span><span class="w"> </span><span class="s">&#39;load&#39;</span><span class="p">:</span><span class="w"> </span><span class="k">function</span><span class="p">(</span><span class="s">&quot;s:load_by_glob&quot;</span><span class="p">)}</span>
+&quot;<span class="w"> </span><span class="nb">now</span><span class="w"> </span><span class="n">s</span><span class="p">:</span><span class="n">null_cache</span><span class="p">.</span><span class="n">load</span><span class="p">()</span><span class="w"> </span><span class="n">works</span><span class="w"> </span><span class="n">as</span><span class="w"> </span><span class="n">before</span>
+</code></pre></div>
 
 <p>The method name <code>load</code> is a string key in the dictionary, with its
 corresponding value being the function reference (see <code>:help Funcref</code>) that
 actually implements it. With multiple methods needing to be defined on both
 caches however, it's more succinct to just create the dictionary objects once
 like below, then attach their respective methods directly, as shown earlier.</p>
-<div class="highlight"><pre><span></span><span class="n">let</span> <span class="n">s</span><span class="p">:</span><span class="n">file_cache</span> <span class="o">=</span> <span class="err">{}</span>
+<div class="highlight"><pre><span></span><code>let s:file_cache = {}
 
-<span class="n">let</span> <span class="n">s</span><span class="p">:</span><span class="n">null_cache</span> <span class="o">=</span> <span class="err">{}</span>
-</pre></div>
-
+let s:null_cache = {}
+</code></pre></div>
 
 <p>As a final word on OOP in Vimscript, I'd just like to point out that it more
 so resembles JavaScript's prototype-based OOP, as opposed to the class-based
@@ -280,22 +275,21 @@ the new instance however one sees fit.</p>
 <h3>Usage</h3>
 <p>No class in Vimscript also means no constructors. But we can ape a rough
 functionally equivalent like so:</p>
-<div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! ctrlspace#cache#Init</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
-  <span class="n">let</span> <span class="s">cache</span> <span class="p">=</span> <span class="n">s</span><span class="p">:</span><span class="n">config</span><span class="p">.</span><span class="n">EnableFilesCache</span> ? <span class="n">s</span><span class="p">:</span><span class="n">file_cache</span> <span class="p">:</span> <span class="n">s</span><span class="p">:</span><span class="n">null_cache</span>
-  <span class="n">call</span> <span class="s">s:cache_common(cache)</span>
-  <span class="n">return</span> <span class="s">cache</span>
+<div class="highlight"><pre><span></span><code><span class="k">function</span><span class="nf">! ctrlspace#cache#Init</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
+<span class="w">  </span><span class="n">let</span><span class="w"> </span><span class="n">cache</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">s</span><span class="p">:</span><span class="n">config</span><span class="p">.</span><span class="n">EnableFilesCache</span><span class="w"> </span>?<span class="w"> </span><span class="n">s</span><span class="p">:</span><span class="n">file_cache</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">s</span><span class="p">:</span><span class="n">null_cache</span>
+<span class="w">  </span><span class="n">call</span><span class="w"> </span><span class="n">s</span><span class="p">:</span><span class="n">cache_common</span><span class="p">(</span><span class="n">cache</span><span class="p">)</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">cache</span>
 <span class="n">endfunction</span>
 
-<span class="s">function!</span> <span class="s">s:cache_common(cache)</span> <span class="s">abort</span>
-  <span class="n">let</span> <span class="s">a:cache.files</span> <span class="p">=</span> <span class="p">[]</span>
-  <span class="n">let</span> <span class="s">a:cache.items</span> <span class="p">=</span> <span class="p">[]</span>
-  <span class="n">let</span> <span class="s">a:cache.clear_all</span> <span class="p">=</span> <span class="k">function</span><span class="p">(</span><span class="s">&#39;s:clear_all&#39;</span><span class="p">)</span>
-  <span class="n">let</span> <span class="s">a:cache.get_files</span> <span class="p">=</span> <span class="k">function</span><span class="p">(</span><span class="s">&#39;s:get_files&#39;</span><span class="p">)</span>
-  <span class="n">let</span> <span class="s">a:cache.get_items</span> <span class="p">=</span> <span class="k">function</span><span class="p">(</span><span class="s">&#39;s:get_items&#39;</span><span class="p">)</span>
-  <span class="n">let</span> <span class="s">a:cache.map_files2items</span> <span class="p">=</span> <span class="k">function</span><span class="p">(</span><span class="s">&#39;s:map_files2items&#39;</span><span class="p">)</span>
+<span class="s">function!</span><span class="w"> </span><span class="s">s:cache_common(cache)</span><span class="w"> </span><span class="s">abort</span>
+<span class="w">  </span><span class="n">let</span><span class="w"> </span><span class="n">a</span><span class="p">:</span><span class="n">cache</span><span class="p">.</span><span class="n">files</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[]</span>
+<span class="w">  </span><span class="n">let</span><span class="w"> </span><span class="n">a</span><span class="p">:</span><span class="n">cache</span><span class="p">.</span><span class="n">items</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[]</span>
+<span class="w">  </span><span class="n">let</span><span class="w"> </span><span class="n">a</span><span class="p">:</span><span class="n">cache</span><span class="p">.</span><span class="n">clear_all</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="k">function</span><span class="p">(</span><span class="s">&#39;s:clear_all&#39;</span><span class="p">)</span>
+<span class="w">  </span><span class="n">let</span><span class="w"> </span><span class="n">a</span><span class="p">:</span><span class="n">cache</span><span class="p">.</span><span class="n">get_files</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="k">function</span><span class="p">(</span><span class="s">&#39;s:get_files&#39;</span><span class="p">)</span>
+<span class="w">  </span><span class="n">let</span><span class="w"> </span><span class="n">a</span><span class="p">:</span><span class="n">cache</span><span class="p">.</span><span class="n">get_items</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="k">function</span><span class="p">(</span><span class="s">&#39;s:get_items&#39;</span><span class="p">)</span>
+<span class="w">  </span><span class="n">let</span><span class="w"> </span><span class="n">a</span><span class="p">:</span><span class="n">cache</span><span class="p">.</span><span class="n">map_files2items</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="k">function</span><span class="p">(</span><span class="s">&#39;s:map_files2items&#39;</span><span class="p">)</span>
 <span class="n">endfunction</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>Inside the <code>ctrlspace#cache#Init</code> "constructor", the correct type of cache
 is selected by checking the value of <code>s:config.EnableFilesCache</code>, which is
@@ -307,9 +301,8 @@ is returned.</p>
 <p>Now inside of the
 <a href="https://github.com/vim-ctrlspace/vim-ctrlspace/blob/master/autoload/ctrlspace/files.vim"><code>files.vim</code></a>
 source, where the cache object is actually used, all that's needed is:</p>
-<div class="highlight"><pre><span></span><span class="err">let s:Cache = ctrlspace#cache#Init()</span>
-</pre></div>
-
+<div class="highlight"><pre><span></span><code>let s:Cache = ctrlspace#cache#Init()
+</code></pre></div>
 
 <p>Once more, functions inside of <code>files.vim</code> are completely agnostic about how
 its cache actually works. All they know is that they can invoke its <code>load()</code>,

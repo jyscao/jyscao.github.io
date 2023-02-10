@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
         <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="generator" content="Pelican" />
         <title>SpaceVim: A Vimmer's Eval</title>
         <link rel="stylesheet" href="/theme/css/main.css" />
@@ -152,11 +153,10 @@ filter on <code>"g:spacevim_"</code>.</p>
 earlier example of the git layer, the git wrapper I use is vim-fugitive,
 but if you prefer lambdalisue's gina.vim, then just add the last line
 under your enabled git layer.</p>
-<div class="highlight"><pre><span></span><span class="k">[[layers]]</span>
-  <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;git&quot;</span>
-  <span class="n">git-plugin</span> <span class="o">=</span> <span class="s">&quot;gina&quot;</span>
-</pre></div>
-
+<div class="highlight"><pre><span></span><code><span class="k">[[layers]]</span>
+<span class="w">  </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;git&quot;</span>
+<span class="w">  </span><span class="n">git-plugin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;gina&quot;</span>
+</code></pre></div>
 
 <p>It's always worth first checking both SpaceVim's built-in
 help manual (<code>:help spacevim-layers</code>) and <a href="https://spacevim.org/layers/">the online
@@ -172,14 +172,13 @@ your own <code>.vimrc</code>, you can supply them to SpaceVim through its hooks
 mechanism, which SpaceVim calls its "bootstrap functions". These two
 functions can be specified with <code>bootstrap_before</code> and <code>bootstrap_after</code>
 in the <code>[options]</code> section of your <code>init.toml</code> config like so:</p>
-<div class="highlight"><pre><span></span><span class="k">[options]</span>
-  <span class="c1"># ...</span>
-  <span class="c1"># your other options</span>
-  <span class="c1"># ...</span>
-  <span class="n">bootstrap_before</span> <span class="o">=</span> <span class="s">&quot;my_config#before&quot;</span>
-  <span class="n">bootstrap_after</span> <span class="o">=</span> <span class="s">&quot;my_config#after&quot;</span>
-</pre></div>
-
+<div class="highlight"><pre><span></span><code><span class="k">[options]</span>
+<span class="w">  </span><span class="c1"># ...</span>
+<span class="w">  </span><span class="c1"># your other options</span>
+<span class="w">  </span><span class="c1"># ...</span>
+<span class="w">  </span><span class="n">bootstrap_before</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;my_config#before&quot;</span>
+<span class="w">  </span><span class="n">bootstrap_after</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;my_config#after&quot;</span>
+</code></pre></div>
 
 <p><code>bootstrap_before</code> is called prior to the loading of any layers
 and plugins, while <code>bootstrap_after</code> is called after that when the
@@ -189,26 +188,24 @@ script should be placed inside your <code>~/.SpaceVim.d/autoload/</code> directo
 which SpaceVim has already conveniently added to your <code>runtimepath</code>.
 Here is an example of a <code>my_config#after</code> bootstrap function that sets
 some options not available via the TOML config:</p>
-<div class="highlight"><pre><span></span><span class="k">function</span><span class="nf">! my_config#after</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
-  <span class="n">call</span> <span class="s">SpaceVim#logger#info(&quot;bootstrap_after</span> <span class="s">called&quot;)</span>     <span class="s">&quot;</span> <span class="s">log</span> <span class="s">bootstrap_after</span> <span class="s">call</span>
-  <span class="n">set</span> <span class="s">inccommand=nosplit</span>    <span class="s">&quot;</span> <span class="s">display</span> <span class="s">result</span> <span class="s">of</span> <span class="s">incremental</span> <span class="s">commands</span> <span class="s">(ex.</span> <span class="s">:%s/patt1/patt2/g)</span>
-  <span class="n">set</span> <span class="s">updatetime=500</span>        <span class="s">&quot;</span> <span class="s">GitGutter</span> <span class="s">uses</span> <span class="s">this</span> <span class="s">as</span> <span class="s">its</span> <span class="s">update</span> <span class="s">interval</span> 
-  <span class="n">set</span> <span class="s">formatprg=par</span>         <span class="s">&quot;</span> <span class="s">use</span> <span class="s">par</span> <span class="s">for</span> <span class="s">reflowing</span> <span class="s">text</span> <span class="s">lines</span>
-  <span class="n">tnoremap</span> <span class="s">jk</span> <span class="o">&lt;</span><span class="n">C</span><span class="o">-\&gt;&lt;</span><span class="n">C</span><span class="o">-</span><span class="n">n</span><span class="o">&gt;</span>    &quot; <span class="n">allow</span> <span class="n">jk</span> <span class="n">to</span> <span class="n">exit</span> <span class="n">into</span> <span class="n">normal</span> <span class="n">mode</span> <span class="n">in</span> <span class="n">terminal</span> <span class="n">buffer</span>
+<div class="highlight"><pre><span></span><code><span class="k">function</span><span class="nf">! my_config#after</span><span class="p">()</span><span class="w"> </span><span class="n">abort</span>
+<span class="w">  </span><span class="n">call</span><span class="w"> </span><span class="n">SpaceVim</span>#<span class="n">logger</span>#<span class="n">info</span><span class="p">(</span><span class="s">&quot;bootstrap_after called&quot;</span><span class="p">)</span><span class="w">     </span><span class="s">&quot; log bootstrap_after call</span>
+<span class="s">  set inccommand=nosplit    &quot;</span><span class="w"> </span><span class="nb">display</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="n">of</span><span class="w"> </span><span class="n">incremental</span><span class="w"> </span><span class="n">commands</span><span class="w"> </span><span class="p">(</span><span class="n">ex</span><span class="p">.</span><span class="w"> </span><span class="p">:</span><span class="c">%s/patt1/patt2/g)</span>
+<span class="w">  </span><span class="nb">set</span><span class="w"> </span><span class="n">updatetime</span><span class="p">=</span><span class="mi">500</span><span class="w">        </span><span class="s">&quot; GitGutter uses this as its update interval </span>
+<span class="s">  set formatprg=par         &quot;</span><span class="w"> </span><span class="n">use</span><span class="w"> </span><span class="n">par</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">reflowing</span><span class="w"> </span><span class="nb">text</span><span class="w"> </span><span class="nb">lines</span>
+<span class="w">  </span><span class="n">tnoremap</span><span class="w"> </span><span class="n">jk</span><span class="w"> </span><span class="o">&lt;</span><span class="n">C</span><span class="o">-\&gt;&lt;</span><span class="n">C</span><span class="o">-</span><span class="n">n</span><span class="o">&gt;</span><span class="w">    </span>&quot;<span class="w"> </span><span class="n">allow</span><span class="w"> </span><span class="n">jk</span><span class="w"> </span><span class="n">to</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="n">into</span><span class="w"> </span><span class="n">normal</span><span class="w"> </span><span class="nb">mode</span><span class="w"> </span><span class="n">in</span><span class="w"> </span><span class="n">terminal</span><span class="w"> </span><span class="n">buffer</span>
 <span class="n">endfunction</span>
-</pre></div>
-
+</code></pre></div>
 
 <p>It's also a good place for you to load and configure custom plugins not
 belonging to any SpaceVim layer. For example:</p>
-<div class="highlight"><pre><span></span><span class="err">let g:spacevim_custom_plugins = [</span>
-<span class="err">      \[&#39;tpope/vim-eunuch&#39;],</span>
-<span class="err">      \[&#39;tpope/vim-rhubarb&#39;],</span>
-<span class="err">      \[&#39;dahu/vimple&#39;],</span>
-<span class="err">      \[&#39;AndrewRadev/linediff.vim&#39;],</span>
-<span class="err">      \]</span>
-</pre></div>
-
+<div class="highlight"><pre><span></span><code>let g:spacevim_custom_plugins = [
+      \[&#39;tpope/vim-eunuch&#39;],
+      \[&#39;tpope/vim-rhubarb&#39;],
+      \[&#39;dahu/vimple&#39;],
+      \[&#39;AndrewRadev/linediff.vim&#39;],
+      \]
+</code></pre></div>
 
 <!-- fix code block above; currently generated w/ class="error" -->
 

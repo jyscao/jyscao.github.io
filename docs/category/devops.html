@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
         <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="generator" content="Pelican" />
         <title>Jethro's Tech Blog - DevOps</title>
         <link rel="stylesheet" href="/theme/css/main.css" />
@@ -55,14 +56,13 @@ IPFS, and so on.</p>
 <p>My example module shall only contain a single package, but in general
 there can be many. To begin, we first load the modules required to
 define the package:</p>
-<div class="highlight"><pre><span></span><span class="p">(</span><span class="nf">define-module</span> <span class="p">(</span><span class="nf">love-nuklear</span><span class="p">)</span>
-               <span class="o">#</span><span class="nv">:use-module</span> <span class="p">(</span><span class="nf">guix</span> <span class="nv">packages</span><span class="p">)</span>
-               <span class="o">#</span><span class="nv">:use-module</span> <span class="p">(</span><span class="nf">guix</span> <span class="nv">git-download</span><span class="p">)</span>
-               <span class="o">#</span><span class="nv">:use-module</span> <span class="p">(</span><span class="nf">guix</span> <span class="nv">build-system</span> <span class="nv">cmake</span><span class="p">)</span>
-               <span class="o">#</span><span class="nv">:use-module</span> <span class="p">(</span><span class="nf">guix</span> <span class="nv">licenses</span><span class="p">)</span>
-               <span class="o">#</span><span class="nv">:use-module</span> <span class="p">(</span><span class="nf">gnu</span> <span class="nv">packages</span> <span class="nv">lua</span><span class="p">))</span>
-</pre></div>
-
+<div class="highlight"><pre><span></span><code><span class="p">(</span><span class="k">define-module</span><span class="w"> </span><span class="p">(</span><span class="nf">love-nuklear</span><span class="p">)</span>
+<span class="w">               </span><span class="kd">#:use-module</span><span class="w"> </span><span class="p">(</span><span class="nf">guix</span><span class="w"> </span><span class="nv">packages</span><span class="p">)</span>
+<span class="w">               </span><span class="kd">#:use-module</span><span class="w"> </span><span class="p">(</span><span class="nf">guix</span><span class="w"> </span><span class="nv">git-download</span><span class="p">)</span>
+<span class="w">               </span><span class="kd">#:use-module</span><span class="w"> </span><span class="p">(</span><span class="nf">guix</span><span class="w"> </span><span class="nv">build-system</span><span class="w"> </span><span class="nv">cmake</span><span class="p">)</span>
+<span class="w">               </span><span class="kd">#:use-module</span><span class="w"> </span><span class="p">(</span><span class="nf">guix</span><span class="w"> </span><span class="nv">licenses</span><span class="p">)</span>
+<span class="w">               </span><span class="kd">#:use-module</span><span class="w"> </span><span class="p">(</span><span class="nf">gnu</span><span class="w"> </span><span class="nv">packages</span><span class="w"> </span><span class="nv">lua</span><span class="p">))</span>
+</code></pre></div>
 
 <p>All package definitions require at least 4 modules, which are all
 located in the <code>guix</code> namespace:</p>
@@ -94,23 +94,22 @@ namespace. For my example of <code>love-nuklear</code>, the only dependency is t
 <h2>Fill Basic Info &amp; Metadata</h2>
 <p>Now it's time to define the actual package, starting with its basic
 information and metadata:</p>
-<div class="highlight"><pre><span></span><span class="p">(</span><span class="nf">define-public</span> <span class="nv">love-nuklear</span>
- <span class="p">(</span><span class="k">let </span><span class="p">((</span><span class="nf">version</span> <span class="s">&quot;v2.6&quot;</span><span class="p">)</span>
-       <span class="p">(</span><span class="nf">commit</span> <span class="s">&quot;fef4e00a602efb16c57ae962850b6e7a01f7a29a&quot;</span><span class="p">))</span>
-  <span class="p">(</span><span class="nf">package</span>
-   <span class="p">(</span><span class="nf">name</span> <span class="s">&quot;love-nuklear&quot;</span><span class="p">)</span>
-   <span class="p">(</span><span class="nf">version</span> <span class="p">(</span><span class="nf">git-version</span> <span class="nv">version</span> <span class="s">&quot;+4commits&quot;</span> <span class="nv">commit</span><span class="p">))</span>
-   <span class="c1">;; ...</span>
-   <span class="c1">;; ...</span>
-   <span class="c1">;; ...</span>
-   <span class="p">(</span><span class="nf">synopsis</span> <span class="s">&quot;Lightweight immediate mode GUI for LÖVE games&quot;</span><span class="p">)</span>
-   <span class="p">(</span><span class="nf">description</span> <span class="s">&quot;LÖVE is a Lua framework for making 2D games.  Nuklear</span>
+<div class="highlight"><pre><span></span><code><span class="p">(</span><span class="k">define-public</span><span class="w"> </span><span class="nv">love-nuklear</span>
+<span class="w"> </span><span class="p">(</span><span class="k">let</span><span class="w"> </span><span class="p">((</span><span class="nb">version</span><span class="w"> </span><span class="s">&quot;v2.6&quot;</span><span class="p">)</span>
+<span class="w">       </span><span class="p">(</span><span class="nf">commit</span><span class="w"> </span><span class="s">&quot;fef4e00a602efb16c57ae962850b6e7a01f7a29a&quot;</span><span class="p">))</span>
+<span class="w">  </span><span class="p">(</span><span class="nf">package</span>
+<span class="w">   </span><span class="p">(</span><span class="nf">name</span><span class="w"> </span><span class="s">&quot;love-nuklear&quot;</span><span class="p">)</span>
+<span class="w">   </span><span class="p">(</span><span class="nb">version</span><span class="w"> </span><span class="p">(</span><span class="nf">git-version</span><span class="w"> </span><span class="nb">version</span><span class="w"> </span><span class="s">&quot;+4commits&quot;</span><span class="w"> </span><span class="nv">commit</span><span class="p">))</span>
+<span class="w">   </span><span class="c1">;; ...</span>
+<span class="w">   </span><span class="c1">;; ...</span>
+<span class="w">   </span><span class="c1">;; ...</span>
+<span class="w">   </span><span class="p">(</span><span class="nf">synopsis</span><span class="w"> </span><span class="s">&quot;Lightweight immediate mode GUI for LÖVE games&quot;</span><span class="p">)</span>
+<span class="w">   </span><span class="p">(</span><span class="nf">description</span><span class="w"> </span><span class="s">&quot;LÖVE is a Lua framework for making 2D games.  Nuklear</span>
 <span class="s">is a minimal state immediate mode graphical user interface toolkit.  This</span>
 <span class="s">package is the Nuklear bindings for LÖVE created by Kevin Harrison.&quot;</span><span class="p">)</span>
-   <span class="p">(</span><span class="nf">home-page</span> <span class="s">&quot;https://github.com/keharriso/love-nuklear/&quot;</span><span class="p">)</span>
-   <span class="p">(</span><span class="nf">license</span> <span class="nv">expat</span><span class="p">))))</span>
-</pre></div>
-
+<span class="w">   </span><span class="p">(</span><span class="nf">home-page</span><span class="w"> </span><span class="s">&quot;https://github.com/keharriso/love-nuklear/&quot;</span><span class="p">)</span>
+<span class="w">   </span><span class="p">(</span><span class="nf">license</span><span class="w"> </span><span class="nv">expat</span><span class="p">))))</span>
+</code></pre></div>
 
 <p>A few points worth mentioning:</p>
 <ul>
@@ -144,20 +143,19 @@ code of <a href="https://github.com/Immediate-Mode-UI/Nuklear">Nuklear</a>, whic
 is not bundled in the tarball release, but is instead tracked as a
 git-submodule, is required to build the final shared object. So to do
 this, we use <code>git-fetch</code> with <code>(recursive? #t)</code>, as shown below:</p>
-<div class="highlight"><pre><span></span>   <span class="p">(</span><span class="nf">source</span> <span class="p">(</span><span class="nf">origin</span>
-            <span class="p">(</span><span class="nf">method</span> <span class="nv">git-fetch</span><span class="p">)</span>
-            <span class="p">(</span><span class="nf">uri</span> <span class="p">(</span><span class="nf">git-reference</span>
-                  <span class="p">(</span><span class="nf">url</span> <span class="s">&quot;https://github.com/keharriso/love-nuklear/&quot;</span><span class="p">)</span>
-                  <span class="p">(</span><span class="nf">commit</span> <span class="nv">commit</span><span class="p">)</span>
-                  <span class="p">(</span><span class="nf">recursive?</span> <span class="no">#t</span><span class="p">)))</span>
-            <span class="c1">;; NOTE: the HEAD of the Nuklear git-submodule is at commit</span>
-            <span class="c1">;; &quot;adc52d710fe3c87194b99f540c53e82eb75c2521&quot; of Oct 1 2019</span>
-            <span class="p">(</span><span class="nf">file-name</span> <span class="p">(</span><span class="nf">git-file-name</span> <span class="nv">name</span> <span class="nv">version</span><span class="p">))</span>
-            <span class="p">(</span><span class="nf">sha256</span>
-             <span class="p">(</span><span class="nf">base32</span>
-              <span class="s">&quot;15qmy8mfwkxy2x9rmxs6f9cyvjvwwj6yf78bs863xmc56dmjzzbn&quot;</span><span class="p">))))</span>
-</pre></div>
-
+<div class="highlight"><pre><span></span><code><span class="w">   </span><span class="p">(</span><span class="nf">source</span><span class="w"> </span><span class="p">(</span><span class="nf">origin</span>
+<span class="w">            </span><span class="p">(</span><span class="nf">method</span><span class="w"> </span><span class="nv">git-fetch</span><span class="p">)</span>
+<span class="w">            </span><span class="p">(</span><span class="nf">uri</span><span class="w"> </span><span class="p">(</span><span class="nf">git-reference</span>
+<span class="w">                  </span><span class="p">(</span><span class="nf">url</span><span class="w"> </span><span class="s">&quot;https://github.com/keharriso/love-nuklear/&quot;</span><span class="p">)</span>
+<span class="w">                  </span><span class="p">(</span><span class="nf">commit</span><span class="w"> </span><span class="nv">commit</span><span class="p">)</span>
+<span class="w">                  </span><span class="p">(</span><span class="nf">recursive?</span><span class="w"> </span><span class="no">#t</span><span class="p">)))</span>
+<span class="w">            </span><span class="c1">;; NOTE: the HEAD of the Nuklear git-submodule is at commit</span>
+<span class="w">            </span><span class="c1">;; &quot;adc52d710fe3c87194b99f540c53e82eb75c2521&quot; of Oct 1 2019</span>
+<span class="w">            </span><span class="p">(</span><span class="nf">file-name</span><span class="w"> </span><span class="p">(</span><span class="nf">git-file-name</span><span class="w"> </span><span class="nv">name</span><span class="w"> </span><span class="nb">version</span><span class="p">))</span>
+<span class="w">            </span><span class="p">(</span><span class="nf">sha256</span>
+<span class="w">             </span><span class="p">(</span><span class="nf">base32</span>
+<span class="w">              </span><span class="s">&quot;15qmy8mfwkxy2x9rmxs6f9cyvjvwwj6yf78bs863xmc56dmjzzbn&quot;</span><span class="p">))))</span>
+</code></pre></div>
 
 <p>Before building from the source, Guix checks that the hash of the
 downloaded files is the same as that supplied by you, the packager.
@@ -188,10 +186,9 @@ record runtime search paths.</p>
 </ul>
 <p>As already stated, the only runtime dependency, and thus <code>input</code> of
 <code>love-nuklear</code> is <code>luajit</code>:</p>
-<div class="highlight"><pre><span></span>   <span class="p">(</span><span class="nf">inputs</span>
-    <span class="o">`</span><span class="p">((</span><span class="s">&quot;luajit&quot;</span> <span class="o">,</span><span class="nv">luajit</span><span class="p">)))</span>
-</pre></div>
-
+<div class="highlight"><pre><span></span><code><span class="w">   </span><span class="p">(</span><span class="nf">inputs</span>
+<span class="w">    </span><span class="o">`</span><span class="p">((</span><span class="s">&quot;luajit&quot;</span><span class="w"> </span><span class="o">,</span><span class="nv">luajit</span><span class="p">)))</span>
+</code></pre></div>
 
 <h2>Fine-Tune Build Procedure</h2>
 <p>At the time of writing, Guix provides modules for 30+ <a href="https://guix.gnu.org/manual/en/html_node/Build-Systems.html">build
@@ -207,20 +204,19 @@ build procedure. Thus it is unnecessary to manually specify these build
 dependencies as <code>native-inputs</code>.</p>
 <p>The following snippet shows the first build procedure that was
 successful in installing the <code>love-nuklear</code> package:</p>
-<div class="highlight"><pre><span></span>   <span class="p">(</span><span class="nf">build-system</span> <span class="nv">cmake-build-system</span><span class="p">)</span>
-   <span class="p">(</span><span class="nf">arguments</span>
-    <span class="o">`</span><span class="p">(</span><span class="o">#</span><span class="nv">:build-type</span> <span class="s">&quot;Release&quot;</span>
-      <span class="o">#</span><span class="nv">:tests?</span> <span class="no">#f</span>
-      <span class="o">#</span><span class="nv">:phases</span>
-      <span class="p">(</span><span class="nf">modify-phases</span> <span class="nv">%standard-phases</span>
-       <span class="p">(</span><span class="nf">replace</span> <span class="ss">&#39;install</span>
-        <span class="p">(</span><span class="nf">lambda*</span> <span class="p">(</span><span class="o">#</span><span class="nv">:key</span> <span class="nv">outputs</span> <span class="o">#</span><span class="nv">:allow-other-keys</span><span class="p">)</span>
-                 <span class="p">(</span><span class="k">let* </span><span class="p">((</span><span class="nf">out</span> <span class="p">(</span><span class="nf">assoc-ref</span> <span class="nv">outputs</span> <span class="s">&quot;out&quot;</span><span class="p">))</span>
-                        <span class="p">(</span><span class="nf">share</span> <span class="p">(</span><span class="nb">string-append </span><span class="nv">out</span> <span class="s">&quot;/share&quot;</span><span class="p">)))</span>
-                       <span class="p">(</span><span class="nf">install-file</span> <span class="s">&quot;nuklear.so&quot;</span> <span class="nv">share</span><span class="p">)</span>
-                       <span class="no">#t</span><span class="p">))))))</span>
-</pre></div>
-
+<div class="highlight"><pre><span></span><code><span class="w">   </span><span class="p">(</span><span class="nf">build-system</span><span class="w"> </span><span class="nv">cmake-build-system</span><span class="p">)</span>
+<span class="w">   </span><span class="p">(</span><span class="nf">arguments</span>
+<span class="w">    </span><span class="o">`</span><span class="p">(</span><span class="kd">#:build-type</span><span class="w"> </span><span class="s">&quot;Release&quot;</span>
+<span class="w">      </span><span class="kd">#:tests?</span><span class="w"> </span><span class="no">#f</span>
+<span class="w">      </span><span class="kd">#:phases</span>
+<span class="w">      </span><span class="p">(</span><span class="nf">modify-phases</span><span class="w"> </span><span class="nv">%standard-phases</span>
+<span class="w">       </span><span class="p">(</span><span class="nf">replace</span><span class="w"> </span><span class="ss">&#39;install</span>
+<span class="w">        </span><span class="p">(</span><span class="k">lambda*</span><span class="w"> </span><span class="p">(</span><span class="kd">#:key</span><span class="w"> </span><span class="nv">outputs</span><span class="w"> </span><span class="kd">#:allow-other-keys</span><span class="p">)</span>
+<span class="w">                 </span><span class="p">(</span><span class="k">let*</span><span class="w"> </span><span class="p">((</span><span class="nf">out</span><span class="w"> </span><span class="p">(</span><span class="nb">assoc-ref</span><span class="w"> </span><span class="nv">outputs</span><span class="w"> </span><span class="s">&quot;out&quot;</span><span class="p">))</span>
+<span class="w">                        </span><span class="p">(</span><span class="nf">share</span><span class="w"> </span><span class="p">(</span><span class="nb">string-append</span><span class="w"> </span><span class="nv">out</span><span class="w"> </span><span class="s">&quot;/share&quot;</span><span class="p">)))</span>
+<span class="w">                       </span><span class="p">(</span><span class="nf">install-file</span><span class="w"> </span><span class="s">&quot;nuklear.so&quot;</span><span class="w"> </span><span class="nv">share</span><span class="p">)</span>
+<span class="w">                       </span><span class="no">#t</span><span class="p">))))))</span>
+</code></pre></div>
 
 <ul>
 <li>
@@ -258,12 +254,11 @@ LÖVE-Nuklear. After this change was kindly merged by its author,
 <code>love-nuklear</code> was then able to be built and installed smoothly with
 zero modifications to the standard phases of the <code>cmake-build-system</code>,
 resulting in the cleaner snippet shown below:</p>
-<div class="highlight"><pre><span></span>   <span class="p">(</span><span class="nf">build-system</span> <span class="nv">cmake-build-system</span><span class="p">)</span>
-   <span class="p">(</span><span class="nf">arguments</span>
-    <span class="o">`</span><span class="p">(</span><span class="o">#</span><span class="nv">:build-type</span> <span class="s">&quot;Release&quot;</span>
-      <span class="o">#</span><span class="nv">:tests?</span> <span class="no">#f</span><span class="p">))</span>
-</pre></div>
-
+<div class="highlight"><pre><span></span><code><span class="w">   </span><span class="p">(</span><span class="nf">build-system</span><span class="w"> </span><span class="nv">cmake-build-system</span><span class="p">)</span>
+<span class="w">   </span><span class="p">(</span><span class="nf">arguments</span>
+<span class="w">    </span><span class="o">`</span><span class="p">(</span><span class="kd">#:build-type</span><span class="w"> </span><span class="s">&quot;Release&quot;</span>
+<span class="w">      </span><span class="kd">#:tests?</span><span class="w"> </span><span class="no">#f</span><span class="p">))</span>
+</code></pre></div>
 
 <p>But just keep in mind that, in order to produce a successful package
 build, sometimes the only option is to modify the standard phases of
