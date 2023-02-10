@@ -119,7 +119,7 @@ Where `init_gossip_client` initializes and returns an instance of
 method below is invoked:
 
 ```python
-    def send_message(self, message, is_relay=False, relay_limit=1):
+    def send_message(self, message: str, is_relay: bool = False, relay_limit: int = 1) -> None:
         """Send a message to the current server."""
         cmd = "/RELAY" if is_relay else "/NEW"
         self._send_to_server(f"{cmd}:{relay_limit}|{message}")
@@ -150,7 +150,7 @@ thus providing the method [`serve_forever`](https://docs.python.org/3/library/so
 class GossipServer:
     """A server that participates in a peer-to-peer gossip network."""
 
-    def __init__(self, server_address, peer_addrs):
+    def __init__(self, server_address: str, peer_addrs: list[str]):
         """Initialize a server with a list of peer addresses.
 
         Peer addresses are in the form HOSTNAME:PORT.
@@ -159,7 +159,7 @@ class GossipServer:
         self.host_port_tup = (hostname, int(port))
         self.ss = ServerSettings(hostname, port, peer_addrs)
 
-    def start(self):
+    def start(self) -> None:
         print(f"Starting Gossip-Node-{self.ss.node_id} with peers:".ljust(36) + f" {', '.join(str(p.id) for p in self.ss.peers)}")
         with GossipTCPServer(self.host_port_tup, GossipMessageHandler, self.ss) as server:
             server.serve_forever()
@@ -190,19 +190,18 @@ The bulk of the work is of course performed by `GossipMessageHandler`:
 ```python
 class GossipMessageHandler(StreamRequestHandler):
 
-    def handle(self):
+    def handle(self) -> None:
         self.cmd, self.msg_data = self.rfile.readline().strip().decode().split(":", maxsplit=1)
         self._get_cmd_handler()()
 
-    def _get_cmd_handler(self):
+    def _get_cmd_handler(self) -> Callable[[], None]:
         return {
-            "/NEW":   self._proc_new_msg,
-            "/RELAY": self._proc_relayed_msg,
-            "/GET":   self._send_client_msgs_data,
-            "/PEERS": self._get_peers_info,
+            "/NEW":    self._proc_new_msg,
+            "/RELAY":  self._proc_relayed_msg,
+            "/GET":    self._send_client_msgs_data,
+            "/PEERS":  self._get_peers_info,
             "/REMOVE": self._remove_peer,
         }[self.cmd]
-
 ```
 
 As you can see from the definition of `_get_cmd_handler` above, 5 commands,
@@ -214,7 +213,7 @@ In our example with the `"/NEW"` command, `_proc_new_msg` will be called to
 handle it:
 
 ```python
-    def _proc_new_msg(self):
+    def _proc_new_msg(self) -> None:
         self._set_relay_limit_and_msg_text_on_send()
         self.msg_id = f"{self.msg_content}_{time.time_ns()}"
         self.curr_msg_attrs = self.server.ss.msgs_box[self.msg_id] = self._init_new_msg_attrs()
@@ -235,7 +234,7 @@ from each of its 3 neighbors), they would receive it 9 times (3/node × 3
 nodes).
 
 ```python
-    def _init_new_msg_attrs(self):
+    def _init_new_msg_attrs(self) -> Dict[str, Union[list, dict, bool]]:
         return {
             "in_paths":   [],
             "in_counts":  Counter({p.id: 0 for p in self.server.ss.peers}),
@@ -254,17 +253,17 @@ The new message and its metadata are saved into the node's `ss.msg_box`. Then
 finally, relayed onwards to its peers through `_save_path_and_relay`:
 
 ```python
-    def _save_path_and_relay(self):
+    def _save_path_and_relay(self) -> None:
         self.curr_msg_attrs["in_paths"].append(self.node_path)
         self._relay_to_peers((self.msg_id, self.node_path))
 
-    def _relay_to_peers(self, data):
+    def _relay_to_peers(self, data: tuple[str, list[int]]) -> None:
         for p in self._get_peers_to_relay():
             if self.curr_msg_attrs["out_counts"][p.id] < self.relay_limit:
                 p.send_message(json.dumps(data), is_relay=True, relay_limit=self.relay_limit)
                 self.curr_msg_attrs["out_counts"][p.id] += 1
 
-    def _get_peers_to_relay(self):
+    def _get_peers_to_relay(self) -> list[GossipClient]:
         if self.cmd == "/NEW":
             return self.server.ss.peers
         elif self.cmd == "/RELAY":
@@ -360,11 +359,11 @@ Then we'd implement `TuranNetwork` as a new subclass of `GossipNetwork` inside
 ```python
 class TuranNetwork(GossipNetwork):
 
-    def __init__(self, num_nodes, r_partitions):
+    def __init__(self, num_nodes: int, r_partitions: int):
         self.r_parts = r_partitions
         super().__init__(num_nodes)
 
-    def _get_network_graph(self):
+    def _get_network_graph(self) -> nx.Graph:
         return nx.turan_graph(self.num_nodes, self.r_parts)
 ```
 
