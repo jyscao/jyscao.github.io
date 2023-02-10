@@ -384,7 +384,7 @@ by an edge if and only if they belong to different subsets.
 <figcaption style="text-align: center;">Fig. 4: Turán network of 16 nodes with 4 partitions</figcaption>
 </figure>
 
-Feel free to review the full patch adding the Turán network [here](https://github.com/jyscao/dapper-labs-gossip/commit/375a79dd760b20c95617d90be5cfbb648ab22698).
+Feel free to review the full patch adding the Turán network [here](https://github.com/jyscao/gossip-network-example/commit/88d3a7c13881853ab378c15aabdb2ea0e9900421).
 
 
 
