@@ -383,7 +383,7 @@ by an edge if and only if they belong to different subsets.
 <figcaption style="text-align: center;">Fig. 4: Turán network of 16 nodes with 4 partitions</figcaption>
 </figure>
 
-Feel free to review the full patch adding the Turán network [here](https://github.com/jyscao/gossip-network-example/commit/88d3a7c13881853ab378c15aabdb2ea0e9900421).
+Feel free to review the full patch adding the Turán network [here](https://github.com/jyscao/gossip-network-example/commit/23b708e91f16d1acf6a883a271d7355baedf8657).
 
 
 
