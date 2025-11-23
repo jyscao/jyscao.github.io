@@ -1,5 +1,6 @@
 Title: Gossip Network Example
 Date: 2023-02-10
+Modified: 2023-02-12
 Category: Programming
 Tags: python, network-programming
 Slug: gossip-network-example
